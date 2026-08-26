@@ -4,3 +4,7 @@ supabase
 python-dotenv
 pandas
 google-generativeai
+requests
+Pillow
+plotly
+fpdf
