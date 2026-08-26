@@ -731,17 +731,6 @@ with tab2:
                         st.plotly_chart(fig_impacto, use_container_width=True)
 
                     st.markdown("---")
-                    
-                    st.markdown("### 🏅 Estado de Alianzas y Gestión")
-                    st.markdown("* 🥇 **Sede Principal** — 18 dispositivos gestionados bajo rigurosos estándares de economía circular.")
-                    st.markdown("* 🥈 **Sede Principal** — 1 dispositivo en fase de diagnóstico y triage circular.")
-                    
-                    st.markdown("---")
-                    
-                    # 5. HISTORIAL Y REPORTE (MANTENER TABLA SIMPLE Y BOTON PDF)
-                    st.markdown("### 📄 Tus últimas buenas acciones")
-                    
-                    st.markdown("---")
                     st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>CERTIFICADO DE VALORIZACIÓN DE RESIDUOS ELECTRÓNICOS (RAEE)</h2>", unsafe_allow_html=True)
                     st.markdown("<p style='text-align: center; font-weight: bold; color: #4B5563;'>CLUB DE RECICLAJE Y ECONOMÍA CIRCULAR (CLUB REDE)</p>", unsafe_allow_html=True)
                     st.markdown("---")
