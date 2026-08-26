@@ -21,6 +21,20 @@ from fpdf import FPDF
 import datetime
 import random
 import time
+# Ocultar footer, barra de herramientas y elementos flotantes inferiores
+hide_streamlit_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    div[data-testid="stDecoration"] {display: none;}
+    div[data-testid="stStatusWidget"] {display: none;}
+    .viewerBadge_container__1QSob {display: none !important;}
+    .floating-action-button {display: none !important;}
+    [data-testid="stToolbar"] {visibility: hidden; height: 0%; position: fixed;}
+    </style>
+"""
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # Cargar variables de entorno y configurar Supabase
 try:
