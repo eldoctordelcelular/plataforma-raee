@@ -27,11 +27,26 @@ hide_streamlit_style = """
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    div[data-testid="stDecoration"] {display: none;}
-    div[data-testid="stStatusWidget"] {display: none;}
+    [data-testid="stDecoration"] {display: none;}
+    [data-testid="stStatusWidget"] {display: none;}
+    [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
+    
+    /* Ocultar Streamlit Viewer Badge y Developer Menu flotantes */
+    #viewerBadge {display: none !important;}
     .viewerBadge_container__1QSob {display: none !important;}
-    .floating-action-button {display: none !important;}
-    [data-testid="stToolbar"] {visibility: hidden; height: 0%; position: fixed;}
+    .viewerBadge_link__1S137 {display: none !important;}
+    div[data-testid="viewerBadge"] {display: none !important;}
+    a[href^="https://streamlit.io/cloud"] {display: none !important;}
+    
+    /* Ocultar el contenedor de botones de administrador inyectado por Streamlit Cloud */
+    div[class^="stActionButton"] {display: none !important;}
+    div[class*="streamlit-developer-menu"] {display: none !important;}
+    iframe[src*="streamlit"] {display: none !important;}
+    
+    /* Regla genérica para ocultar cualquier elemento flotante en la esquina inferior derecha */
+    div[style*="position: fixed"][style*="bottom:"][style*="right:"] {
+        display: none !important;
+    }
     </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
