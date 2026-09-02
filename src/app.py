@@ -38,12 +38,21 @@ hide_streamlit_style = """
     div[data-testid="viewerBadge"] {display: none !important;}
     a[href^="https://streamlit.io/cloud"] {display: none !important;}
     
+    /* Ocultar botones de Despliegue y logos inyectados por Streamlit */
+    [data-testid="stAppDeployButton"] {display: none !important;}
+    [data-testid="stLogo"] {display: none !important;}
+    .stDeployButton {display: none !important;}
+    #st-deploy-button {display: none !important;}
+    
     /* Ocultar el contenedor de botones de administrador inyectado por Streamlit Cloud */
     div[class^="stActionButton"] {display: none !important;}
     div[class*="streamlit-developer-menu"] {display: none !important;}
     iframe[src*="streamlit"] {display: none !important;}
     
-    /* Regla genérica para ocultar cualquier elemento flotante en la esquina inferior derecha */
+    /* Regla ultra-genérica para ocultar cualquier botón flotante en la esquina inferior derecha */
+    div[style*="position: fixed"][style*="bottom: 1"][style*="right: 1"] {
+        display: none !important;
+    }
     div[style*="position: fixed"][style*="bottom:"][style*="right:"] {
         display: none !important;
     }
