@@ -545,23 +545,28 @@ st.markdown(
 tab1, tab2 = st.tabs(["📸 Clasificador y Registro", "📊 Portal Donantes"])
 
 with tab1:
+    if "registro_key" not in st.session_state:
+        st.session_state.registro_key = 0
+
+    rk = st.session_state.registro_key
+
     col1, col2 = st.columns(2)
     with col1:
-        activar_frontal = st.checkbox("Activar Cámara para Foto Frontal")
+        activar_frontal = st.checkbox("Activar Cámara para Foto Frontal", key=f"act_front_{rk}")
         foto_frontal = None
         if activar_frontal:
-            foto_frontal = st.camera_input("Foto Frontal (Pantalla/Frente)")
+            foto_frontal = st.camera_input("Foto Frontal (Pantalla/Frente)", key=f"cam_front_{rk}")
             
     with col2:
-        activar_trasera = st.checkbox("Activar Cámara para Foto Trasera")
+        activar_trasera = st.checkbox("Activar Cámara para Foto Trasera", key=f"act_tras_{rk}")
         foto_trasera = None
         if activar_trasera:
-            foto_trasera = st.camera_input("Foto Trasera (Carcasa/Etiqueta)")
+            foto_trasera = st.camera_input("Foto Trasera (Carcasa/Etiqueta)", key=f"cam_tras_{rk}")
             
-    codigo_empresa = st.text_input("Código Institucional / Empresa (Obligatorio)")
-    observaciones = st.text_input("TIPO DE DISPOSITIVO")
-    origen_donacion = st.text_input("Origen de la donación (Nombre de persona, empresa o institución)")
-    correo_usuario = st.text_input("Correo electrónico para recibir el resumen")
+    codigo_empresa = st.text_input("Código Institucional / Empresa (Obligatorio)", key=f"cod_{rk}")
+    observaciones = st.text_input("TIPO DE DISPOSITIVO", key=f"obs_{rk}")
+    origen_donacion = st.text_input("Origen de la donación (Nombre de persona, empresa o institución)", key=f"orig_{rk}")
+    correo_usuario = st.text_input("Correo electrónico para recibir el resumen", key=f"correo_{rk}")
     
     if st.button("Analizar y Registrar"):
         if not foto_frontal and not foto_trasera:
@@ -645,6 +650,10 @@ Para un dispositivo válido, el "destino_triage" DEBE ser estrictamente una de l
                                 st.success(f"¡Resumen generado y enviado exitosamente a {correo_usuario}!")
                             except Exception as e:
                                 st.error(str(e))
+                                
+                        if st.button("➕ Ingresar Nuevo Registro"):
+                            st.session_state.registro_key += 1
+                            st.rerun()
                 
             except json.JSONDecodeError:
                 st.error("Error: La Inteligencia Artificial no retornó un formato JSON válido. Intenta nuevamente.")
