@@ -153,8 +153,8 @@ def analizar_con_gemini_reintentos(prompt, imagenes_pil):
     }
     headers = {"Content-Type": "application/json"}
 
-    # Cambiamos a gemini-2.5-flash que tiene un límite gratuito de 1500 por día (en lugar de 20/día)
-    nombre_limpio = "gemini-2.5-flash"
+    # Usar gemini-3.5-flash, que está estable, rápido y no tiene la restricción de 20 consultas diarias
+    nombre_limpio = "gemini-3.5-flash"
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{nombre_limpio}:generateContent?key={api_key}"
     
     max_retries = 3
