@@ -659,11 +659,15 @@ Para un dispositivo válido, el "destino_triage" DEBE ser estrictamente una de l
                         st.session_state.success_data = datos_triage
                         
                         if correo_usuario:
-                            try:
-                                enviar_correo_resumen(correo_usuario, response_text)
-                                st.session_state.success_email = f"¡Resumen generado y enviado exitosamente a {correo_usuario}!"
-                            except Exception as e:
-                                st.error(str(e))
+                            def enviar_correo_bg(dest, res_texto):
+                                try:
+                                    enviar_correo_resumen(dest, res_texto)
+                                except Exception as e:
+                                    print(f"Error enviando correo en segundo plano: {e}")
+                                    
+                            # Enviar correo en segundo plano para no hacer esperar al usuario
+                            threading.Thread(target=enviar_correo_bg, args=(correo_usuario, response_text)).start()
+                            st.session_state.success_email = f"¡Resumen en proceso de envío a {correo_usuario}!"
                                 
                         st.rerun()
                 
