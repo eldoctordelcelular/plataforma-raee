@@ -205,7 +205,13 @@ def enviar_correo_resumen(destinatario, resumen_texto):
     except Exception as e:
         raise Exception(f"No se pudo enviar el correo: {str(e)}")
 
-def generar_pdf_certificado(entidad, codigo_cert, fecha_str, materia_prima, carbono_evitada, residuos_peligrosos, circ_pct, icl_pct, rcc_val):
+def generar_pdf_certificado(entidad, codigo_cert, fecha_str, materia_prima, carbono_evitada, residuos_peligrosos, circ_pct, icl_pct, rcc_val, reparacion, desarme, reciclaje):
+    total = reparacion + desarme + reciclaje
+    if total == 0: total = 1
+    pct_rep = (reparacion / total) * 100
+    pct_des = (desarme / total) * 100
+    pct_rec = (reciclaje / total) * 100
+    
     html_template = f"""<!DOCTYPE html>
     <html lang="es">
     <head>
@@ -416,6 +422,37 @@ def generar_pdf_certificado(entidad, codigo_cert, fecha_str, materia_prima, carb
       <p class="statement">
         <strong>Declaración de Cumplimiento:</strong> La valorización de los equipos recibidos previene su disposición en rellenos sanitarios y garantiza la trazabilidad exigida por las normativas de gestión ambiental y economía circular, dotando a los componentes recuperados de una segunda vida útil en la comunidad técnica y estudiantil.
       </p>
+
+      <div class="section-title">Análisis Visual de Destino de los Equipos</div>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; border: 1px solid #cbd5e1; background-color: #f8fafc;">
+        <tr>
+          <td style="width: 25%; font-size: 8.5pt; font-weight: bold; padding: 6px 10px;">Reparación ({pct_rep:.0f}%)</td>
+          <td style="width: 60%; padding: 6px 10px;">
+             <table style="width: 100%; background-color: #e2e8f0; border-collapse: collapse;">
+                <tr><td style="padding: 0;"><table style="width: {pct_rep}%; height: 12px; background-color: #4CAF50; border-collapse: collapse;"><tr><td></td></tr></table></td></tr>
+             </table>
+          </td>
+          <td style="width: 15%; font-size: 8.5pt; text-align: right; padding: 6px 10px;">{reparacion} ud</td>
+        </tr>
+        <tr>
+          <td style="width: 25%; font-size: 8.5pt; font-weight: bold; padding: 6px 10px;">Desarme ({pct_des:.0f}%)</td>
+          <td style="width: 60%; padding: 6px 10px;">
+             <table style="width: 100%; background-color: #e2e8f0; border-collapse: collapse;">
+                <tr><td style="padding: 0;"><table style="width: {pct_des}%; height: 12px; background-color: #FFC107; border-collapse: collapse;"><tr><td></td></tr></table></td></tr>
+             </table>
+          </td>
+          <td style="width: 15%; font-size: 8.5pt; text-align: right; padding: 6px 10px;">{desarme} ud</td>
+        </tr>
+        <tr>
+          <td style="width: 25%; font-size: 8.5pt; font-weight: bold; padding: 6px 10px;">Reciclaje ({pct_rec:.0f}%)</td>
+          <td style="width: 60%; padding: 6px 10px;">
+             <table style="width: 100%; background-color: #e2e8f0; border-collapse: collapse;">
+                <tr><td style="padding: 0;"><table style="width: {pct_rec}%; height: 12px; background-color: #F44336; border-collapse: collapse;"><tr><td></td></tr></table></td></tr>
+             </table>
+          </td>
+          <td style="width: 15%; font-size: 8.5pt; text-align: right; padding: 6px 10px;">{reciclaje} ud</td>
+        </tr>
+      </table>
 
       <table class="signatures">
         <tr>
@@ -876,7 +913,10 @@ with tab2:
                         residuos_peligrosos,
                         circ_pct,
                         icl_pct,
-                        rcc_val
+                        rcc_val,
+                        reparacion,
+                        desarme,
+                        reciclaje
                     )
 
                     st.download_button(
