@@ -852,12 +852,12 @@ with tab2:
                                 "Control de Residuos Peligrosos"
                             ],
                             "Valor Verificado": [
-                                "85% (Componentes rescatados)",
-                                "92% (Impacto en región)",
-                                "4.2x (Conversión a activo útil)",
+                                f"{circ_pct:.1f}% (Componentes rescatados)",
+                                f"{icl_pct:.1f}% (Impacto en región)",
+                                f"{rcc_val:.1f}x (Conversión a activo útil)",
                                 f"{materia_prima} kg (Roca y minerales salvados)",
                                 f"{carbono_evitada} kg de CO₂e (Mitigación global)",
-                                f"{residuos_peligrosos:.1f} kg (Baterías y componentes confinados)"
+                                f"{residuos_peligrosos:.1f} kg (Baterías y confinados)"
                             ]
                         }
                         st.table(datos_certificado)
