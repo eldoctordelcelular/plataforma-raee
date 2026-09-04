@@ -91,7 +91,8 @@ def optimizar_imagen(imagen_subida):
     img = Image.open(imagen_subida)
     if img.mode in ('RGBA', 'P'):
         img = img.convert('RGB')
-    img.thumbnail((512, 512))
+    # Compresión extrema para mayor velocidad (256x256 en lugar de 512x512)
+    img.thumbnail((256, 256))
     return img
 
 
@@ -133,7 +134,8 @@ def analizar_con_gemini_reintentos(prompt, imagenes_pil):
     parts = [{"text": prompt}]
     for img in imagenes_pil:
         buffered = io.BytesIO()
-        img.save(buffered, format="JPEG", quality=60)
+        # Calidad muy baja (40) para que el archivo pese casi nada y suba al instante
+        img.save(buffered, format="JPEG", quality=40)
         img_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
         parts.append({
             "inline_data": {
