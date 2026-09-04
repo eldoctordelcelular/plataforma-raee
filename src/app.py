@@ -567,15 +567,27 @@ with tab1:
     col1, col2 = st.columns(2)
     with col1:
         activar_frontal = st.checkbox("Activar Cámara para Foto Frontal", key=f"act_front_{rk}")
-        foto_frontal = None
         if activar_frontal:
-            foto_frontal = st.camera_input("Foto Frontal (Pantalla/Frente)", key=f"cam_front_{rk}")
+            foto_frontal = st.file_uploader("Tomar Foto Frontal", type=["jpg", "jpeg", "png"], key=f"cam_front_{rk}")
+            if foto_frontal is not None:
+                try:
+                    st.session_state[f"img_front_{rk}"] = optimizar_imagen(foto_frontal)
+                except Exception as e:
+                    st.error(f"Error procesando imagen: {e}")
+            if f"img_front_{rk}" in st.session_state:
+                st.image(st.session_state[f"img_front_{rk}"], width=200, caption="✅ Foto Frontal lista")
             
     with col2:
         activar_trasera = st.checkbox("Activar Cámara para Foto Trasera", key=f"act_tras_{rk}")
-        foto_trasera = None
         if activar_trasera:
-            foto_trasera = st.camera_input("Foto Trasera (Carcasa/Etiqueta)", key=f"cam_tras_{rk}")
+            foto_trasera = st.file_uploader("Tomar Foto Trasera", type=["jpg", "jpeg", "png"], key=f"cam_tras_{rk}")
+            if foto_trasera is not None:
+                try:
+                    st.session_state[f"img_tras_{rk}"] = optimizar_imagen(foto_trasera)
+                except Exception as e:
+                    st.error(f"Error procesando imagen: {e}")
+            if f"img_tras_{rk}" in st.session_state:
+                st.image(st.session_state[f"img_tras_{rk}"], width=200, caption="✅ Foto Trasera lista")
             
     codigo_empresa = st.text_input("Código Institucional / Empresa (Obligatorio)", key=f"cod_{rk}")
     observaciones = st.text_input("TIPO DE DISPOSITIVO", key=f"obs_{rk}")
@@ -583,7 +595,8 @@ with tab1:
     correo_usuario = st.text_input("Correo electrónico para recibir el resumen", key=f"correo_{rk}")
     
     if st.button("Analizar y Registrar"):
-        if not foto_frontal and not foto_trasera:
+        tiene_foto = f"img_front_{rk}" in st.session_state or f"img_tras_{rk}" in st.session_state
+        if not tiene_foto:
             st.error("Por favor, toma al menos una foto (frontal o trasera) del equipo primero.")
         elif not codigo_empresa.strip():
             st.error("Por favor, ingresa el Código Institucional / Empresa.")
@@ -595,10 +608,10 @@ with tab1:
             try:
                 with st.spinner("⏳ Analizando componentes y registrando en la base de datos..."):
                     images = []
-                    if foto_frontal:
-                        images.append(optimizar_imagen(foto_frontal))
-                    if foto_trasera:
-                        images.append(optimizar_imagen(foto_trasera))
+                    if f"img_front_{rk}" in st.session_state:
+                        images.append(st.session_state[f"img_front_{rk}"])
+                    if f"img_tras_{rk}" in st.session_state:
+                        images.append(st.session_state[f"img_tras_{rk}"])
                     
                     prompt = """
 Eres un ingeniero experto en hardware y reciclaje electrónico para el Club REDE.
