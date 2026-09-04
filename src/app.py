@@ -153,8 +153,8 @@ def analizar_con_gemini_reintentos(prompt, imagenes_pil):
     }
     headers = {"Content-Type": "application/json"}
 
-    # Usar gemini-3.5-flash, que está estable, rápido y no tiene la restricción de 20 consultas diarias
-    nombre_limpio = "gemini-3.5-flash"
+    # Usar gemini-1.5-flash, el modelo estándar y estable
+    nombre_limpio = "gemini-1.5-flash"
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{nombre_limpio}:generateContent?key={api_key}"
     
     max_retries = 3
@@ -164,13 +164,13 @@ def analizar_con_gemini_reintentos(prompt, imagenes_pil):
             if res.status_code == 200:
                 data = res.json()
                 return data["candidates"][0]["content"]["parts"][0]["text"]
-            elif res.status_code == 429:
+            elif res.status_code == 429 or res.status_code == 503:
                 if attempt < max_retries - 1:
-                    # Si es error 429 (Límite de cuota), esperar 15 segundos y reintentar
+                    # Si es error 429 (Cuota) o 503 (Sobrecarga), esperar 15 segundos y reintentar
                     time.sleep(15)
                     continue
                 else:
-                    raise Exception(f"Status {res.status_code}: Excedido el límite de consultas tras múltiples reintentos. {res.text}")
+                    raise Exception(f"Status {res.status_code}: Excedido el límite de consultas o modelo saturado tras múltiples reintentos. {res.text}")
             else:
                 raise Exception(f"Status {res.status_code}: {res.text}")
         except requests.exceptions.RequestException as e_req:
