@@ -568,7 +568,7 @@ with tab1:
     with col1:
         activar_frontal = st.checkbox("Activar Cámara para Foto Frontal", key=f"act_front_{rk}")
         if activar_frontal:
-            foto_frontal = st.file_uploader("Tomar Foto Frontal", type=["jpg", "jpeg", "png"], key=f"cam_front_{rk}")
+            foto_frontal = st.camera_input("Tomar Foto Frontal", key=f"cam_front_{rk}")
             if foto_frontal is not None:
                 try:
                     st.session_state[f"img_front_{rk}"] = optimizar_imagen(foto_frontal)
@@ -580,7 +580,7 @@ with tab1:
     with col2:
         activar_trasera = st.checkbox("Activar Cámara para Foto Trasera", key=f"act_tras_{rk}")
         if activar_trasera:
-            foto_trasera = st.file_uploader("Tomar Foto Trasera", type=["jpg", "jpeg", "png"], key=f"cam_tras_{rk}")
+            foto_trasera = st.camera_input("Tomar Foto Trasera", key=f"cam_tras_{rk}")
             if foto_trasera is not None:
                 try:
                     st.session_state[f"img_tras_{rk}"] = optimizar_imagen(foto_trasera)
