@@ -114,10 +114,9 @@ def obtener_modelos_gemini_cached(_api_key):
     # Si no se pudo listar, usar los identificadores estándar
     if not modelos_a_probar:
         modelos_a_probar = [
-            "models/gemini-2.5-flash",
+            "models/gemini-3.6-flash",
             "models/gemini-2.0-flash",
-            "models/gemini-1.5-flash",
-            "models/gemini-1.5-pro"
+            "models/gemini-2.5-pro"
         ]
 
     # Ordenar priorizando modelos flash
@@ -153,8 +152,8 @@ def analizar_con_gemini_reintentos(prompt, imagenes_pil):
     }
     headers = {"Content-Type": "application/json"}
 
-    # Usar gemini-1.5-flash, el modelo estándar y estable
-    nombre_limpio = "gemini-1.5-flash"
+    # Usar gemini-3.6-flash, el modelo estándar y estable
+    nombre_limpio = "gemini-3.6-flash"
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{nombre_limpio}:generateContent?key={api_key}"
     
     max_retries = 3
