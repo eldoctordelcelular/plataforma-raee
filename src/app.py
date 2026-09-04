@@ -548,19 +548,7 @@ with tab1:
     if "registro_key" not in st.session_state:
         st.session_state.registro_key = 0
 
-    if "success_data" in st.session_state:
-        st.success("¡Registro completado!")
-        st.json(st.session_state.success_data)
-        
-        if "success_email" in st.session_state:
-            st.success(st.session_state.success_email)
-            
-        if st.button("➕ Ingresar Nuevo Registro", key="btn_nuevo_registro"):
-            st.session_state.registro_key += 1
-            del st.session_state.success_data
-            if "success_email" in st.session_state:
-                del st.session_state.success_email
-            st.rerun()
+
 
     rk = st.session_state.registro_key
 
@@ -682,9 +670,24 @@ Para un dispositivo válido, el "destino_triage" DEBE ser estrictamente una de l
             except json.JSONDecodeError:
                 st.error("Error: La Inteligencia Artificial no retornó un formato JSON válido. Intenta nuevamente.")
                 st.write("Respuesta cruda de la IA:")
-                st.text(response.text)
+                st.code(response_text)
             except Exception as e:
                 st.error(f"Ocurrió un error inesperado durante el procesamiento: {str(e)}")
+                
+    if "success_data" in st.session_state:
+        st.markdown("---")
+        st.success("¡Registro completado!")
+        st.json(st.session_state.success_data)
+        
+        if "success_email" in st.session_state:
+            st.success(st.session_state.success_email)
+            
+        if st.button("➕ Ingresar Nuevo Registro", key="btn_nuevo_registro"):
+            st.session_state.registro_key += 1
+            del st.session_state.success_data
+            if "success_email" in st.session_state:
+                del st.session_state.success_email
+            st.rerun()
 
 with tab2:
     st.markdown("<h2 style='text-align: center; color: #4CAF50;'>¡Bienvenido a tu Portal de Donante! 🌟</h2>", unsafe_allow_html=True)
