@@ -157,15 +157,29 @@ def analizar_con_gemini_reintentos(prompt, imagenes_pil):
     nombre_limpio = "gemini-3.6-flash"
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{nombre_limpio}:generateContent?key={api_key}"
     
-    try:
-        res = requests.post(endpoint, headers=headers, json=payload, timeout=120)
-        if res.status_code == 200:
-            data = res.json()
-            return data["candidates"][0]["content"]["parts"][0]["text"]
-        else:
-            raise Exception(f"Status {res.status_code}: {res.text}")
-    except Exception as e_req:
-        raise Exception(f"Fallo al procesar con {nombre_limpio}. Error: {str(e_req)}")
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            res = requests.post(endpoint, headers=headers, json=payload, timeout=120)
+            if res.status_code == 200:
+                data = res.json()
+                return data["candidates"][0]["content"]["parts"][0]["text"]
+            elif res.status_code == 429:
+                if attempt < max_retries - 1:
+                    # Si es error 429 (Límite de cuota), esperar 15 segundos y reintentar
+                    time.sleep(15)
+                    continue
+                else:
+                    raise Exception(f"Status {res.status_code}: Excedido el límite de consultas tras múltiples reintentos. {res.text}")
+            else:
+                raise Exception(f"Status {res.status_code}: {res.text}")
+        except requests.exceptions.RequestException as e_req:
+            if attempt < max_retries - 1:
+                time.sleep(10)
+                continue
+            raise Exception(f"Fallo de conexión al procesar con {nombre_limpio}. Error: {str(e_req)}")
+    
+    raise Exception(f"No se pudo completar el análisis después de {max_retries} intentos.")
 
 
 def enviar_correo_resumen(destinatario, resumen_texto):
