@@ -152,7 +152,7 @@ def analizar_con_gemini_reintentos(prompt, imagenes_pil):
     headers = {"Content-Type": "application/json"}
 
     # Usar el modelo recomendado por la API de Google en el mensaje de error
-    nombre_limpio = "gemini-3.5-flash"
+    nombre_limpio = "gemini-1.5-flash"
     endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{nombre_limpio}:generateContent?key={api_key}"
     
     try:
