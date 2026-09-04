@@ -152,33 +152,30 @@ def analizar_con_gemini_reintentos(prompt, imagenes_pil):
     }
     headers = {"Content-Type": "application/json"}
 
-    # Usar gemini-flash-lite-latest, que tiene una cuota gratuita mayor
-    nombre_limpio = "gemini-flash-lite-latest"
-    endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{nombre_limpio}:generateContent?key={api_key}"
+    modelos_fallback = [
+        "gemini-flash-lite-latest",
+        "gemini-3.5-flash",
+        "gemini-2.5-pro",
+        "gemini-2.0-flash"
+    ]
     
-    max_retries = 3
-    for attempt in range(max_retries):
+    errores = []
+    for modelo in modelos_fallback:
+        endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent?key={api_key}"
         try:
-            res = requests.post(endpoint, headers=headers, json=payload, timeout=120)
+            res = requests.post(endpoint, headers=headers, json=payload, timeout=45)
             if res.status_code == 200:
                 data = res.json()
                 return data["candidates"][0]["content"]["parts"][0]["text"]
-            elif res.status_code == 429 or res.status_code == 503:
-                if attempt < max_retries - 1:
-                    # Si es error 429 (Cuota) o 503 (Sobrecarga), esperar 15 segundos y reintentar
-                    time.sleep(15)
-                    continue
-                else:
-                    raise Exception(f"Status {res.status_code}: Excedido el límite de consultas o modelo saturado tras múltiples reintentos. {res.text}")
             else:
-                raise Exception(f"Status {res.status_code}: {res.text}")
-        except requests.exceptions.RequestException as e_req:
-            if attempt < max_retries - 1:
-                time.sleep(10)
+                errores.append(f"{modelo}: {res.status_code}")
+                # Si falla (429 cuota, 503 saturado, u otro), pasa al siguiente modelo
                 continue
-            raise Exception(f"Fallo de conexión al procesar con {nombre_limpio}. Error: {str(e_req)}")
-    
-    raise Exception(f"No se pudo completar el análisis después de {max_retries} intentos.")
+        except requests.exceptions.RequestException as e_req:
+            errores.append(f"{modelo}: Timeout/Connection")
+            continue
+            
+    raise Exception(f"Los modelos están saturados o sin cuota en este momento. Detalles: {', '.join(errores)}")
 
 
 def enviar_correo_resumen(destinatario, resumen_texto):
