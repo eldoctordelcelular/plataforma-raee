@@ -419,15 +419,10 @@ def generar_pdf_certificado(entidad, codigo_cert, fecha_str, materia_prima, carb
 
       <table class="signatures">
         <tr>
-          <td>
-            <div class="sig-line"></div>
+          <td style="width: 100%;">
+            <div class="sig-line" style="width: 40%; margin: 25px auto 4px auto;"></div>
             <div class="sig-name">Daniel Bustamante Jara</div>
             <div class="sig-role">Coordinación General y Dirección Técnica<br>Club REDE</div>
-          </td>
-          <td>
-            <div class="sig-line"></div>
-            <div class="sig-name">Comité de Trazabilidad y Sostenibilidad</div>
-            <div class="sig-role">Validación Ambiental y Valorización RAEE<br>Región de Valparaíso, Chile</div>
           </td>
         </tr>
       </table>
