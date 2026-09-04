@@ -548,6 +548,20 @@ with tab1:
     if "registro_key" not in st.session_state:
         st.session_state.registro_key = 0
 
+    if "success_data" in st.session_state:
+        st.success("¡Registro completado!")
+        st.json(st.session_state.success_data)
+        
+        if "success_email" in st.session_state:
+            st.success(st.session_state.success_email)
+            
+        if st.button("➕ Ingresar Nuevo Registro", key="btn_nuevo_registro"):
+            st.session_state.registro_key += 1
+            del st.session_state.success_data
+            if "success_email" in st.session_state:
+                del st.session_state.success_email
+            st.rerun()
+
     rk = st.session_state.registro_key
 
     col1, col2 = st.columns(2)
@@ -641,19 +655,16 @@ Para un dispositivo válido, el "destino_triage" DEBE ser estrictamente una de l
                         
                         response_db = supabase.table("inventario_dispositivos").insert(datos_db).execute()
                         
-                        st.success("¡Registro completado!")
-                        st.json(datos_triage)
+                        st.session_state.success_data = datos_triage
                         
                         if correo_usuario:
                             try:
                                 enviar_correo_resumen(correo_usuario, response_text)
-                                st.success(f"¡Resumen generado y enviado exitosamente a {correo_usuario}!")
+                                st.session_state.success_email = f"¡Resumen generado y enviado exitosamente a {correo_usuario}!"
                             except Exception as e:
                                 st.error(str(e))
                                 
-                        if st.button("➕ Ingresar Nuevo Registro"):
-                            st.session_state.registro_key += 1
-                            st.rerun()
+                        st.rerun()
                 
             except json.JSONDecodeError:
                 st.error("Error: La Inteligencia Artificial no retornó un formato JSON válido. Intenta nuevamente.")
