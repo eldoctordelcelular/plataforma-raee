@@ -586,7 +586,7 @@ st.markdown(
     unsafe_allow_html=True
 )
 
-tab1, tab2 = st.tabs(["📸 Clasificador y Registro", "📊 Portal Donantes"])
+tab1, tab2, tab3 = st.tabs(["📸 Clasificador y Registro", "📊 Portal Donantes", "⚙️ Admin"])
 
 with tab1:
     if "registro_key" not in st.session_state:
@@ -956,3 +956,28 @@ with tab2:
         else:
             st.error("Lo sentimos, el sistema de base de datos no está disponible en este momento.")
 
+with tab3:
+    st.markdown("<h2 style='text-align: center; color: #555;'>Panel de Administración</h2>", unsafe_allow_html=True)
+    admin_password = st.text_input("Contraseña de administrador:", type="password")
+    
+    if st.button("Ingresar al panel"):
+        if admin_password == "admin123":
+            if supabase:
+                try:
+                    with st.spinner("Cargando códigos..."):
+                        res = supabase.table("inventario_dispositivos").select("codigo_empresa").execute()
+                        if res.data:
+                            codigos = list(set([x.get("codigo_empresa") for x in res.data if x.get("codigo_empresa")]))
+                            st.success("Lista de todos los códigos institucionales / empresa registrados:")
+                            
+                            # Mostrar como lista más amigable
+                            for cod in codigos:
+                                st.markdown(f"- **{cod}**")
+                        else:
+                            st.info("No hay registros aún.")
+                except Exception as e:
+                    st.error(f"Error cargando códigos: {e}")
+            else:
+                st.error("Base de datos no conectada.")
+        elif admin_password:
+            st.error("Contraseña incorrecta.")
