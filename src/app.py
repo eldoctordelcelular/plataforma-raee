@@ -278,45 +278,109 @@ def analizar_con_gemini_reintentos(prompt, imagenes_pil):
             
     raise Exception(f"Saturación de modelos. Detalles: {', '.join(errores)}")
 
-def enviar_correo_resumen(destinatario, datos_triage, imagen_pil=None, origen_donacion="No especificado"):
-    remitente = os.getenv("SMTP_EMAIL", "tu_correo@gmail.com")
-    password = os.getenv("SMTP_PASSWORD", "tu_contraseña_de_aplicacion")
+def enviar_correo_resumen(destinatario, datos_triage, cod_donacion="No generado", codigo_empresa="General", imagen_pil=None, origen_donacion="No especificado"):
+    try:
+        remitente = st.secrets.get("SMTP_EMAIL")
+        password = st.secrets.get("SMTP_PASSWORD")
+    except Exception:
+        remitente = os.getenv("SMTP_EMAIL")
+        password = os.getenv("SMTP_PASSWORD")
+        
     if not remitente or not password:
+        remitente = "contactoclubrede@gmail.com"
+        password = os.getenv("SMTP_PASSWORD", "")
+    
+    if not password:
+        print("Aviso: Falta configurar SMTP_PASSWORD para enviar correos.")
         return
 
     msg = MIMEMultipart('related')
-    msg['From'] = remitente
+    msg['From'] = f"Club REDE <{remitente}>"
     msg['To'] = destinatario
-    msg['Subject'] = "Constancia de Pre-Registro • Club REDE"
+    msg['Subject'] = f"Constancia de Pre-Registro [{cod_donacion}] • Club REDE"
 
     msg_alt = MIMEMultipart('alternative')
     msg.attach(msg_alt)
 
     html = f"""
-    <html><body style='font-family: Arial, sans-serif; background: #f8fafc; padding: 20px;'>
-      <div style='max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; padding: 24px; border: 1px solid #e2e8f0;'>
-        <h2 style='color: #057a55; margin-top: 0;'>Club REDE • Reciclaje y Minería Urbana</h2>
-        <p>Hola, muchas gracias por sumarte a la red de reciclaje con propósito social.</p>
-        <p><strong>Detalle del Pre-Registro:</strong></p>
-        <ul>
-          <li><strong>Dispositivo:</strong> {datos_triage.get('tipo_dispositivo', '')}</li>
-          <li><strong>Modelo:</strong> {datos_triage.get('marca_modelo', '')}</li>
-          <li><strong>Estado visual:</strong> {datos_triage.get('estado_visual', '')}</li>
-          <li><strong>Destino sugerido:</strong> {datos_triage.get('destino_triage', '')}</li>
-        </ul>
-        <p>Acércate al punto de acopio más cercano para validar tu entrega y generar tu Certificado Ley REP.</p>
-      </div>
-    </body></html>
+    <html>
+      <body style='font-family: Arial, sans-serif; background-color: #f1f5f9; padding: 25px; margin: 0;'>
+        <div style='max-width: 600px; margin: auto; background-color: #ffffff; border-radius: 12px; padding: 28px; border: 1px solid #cbd5e1; box-shadow: 0 4px 12px rgba(0,0,0,0.06);'>
+          <div style='text-align: center; border-bottom: 2px solid #00D68F; padding-bottom: 16px; margin-bottom: 20px;'>
+            <h1 style='color: #0f172a; margin: 0; font-size: 22px;'>Club REDE • Minería Urbana</h1>
+            <p style='color: #059669; font-weight: bold; margin: 4px 0 0 0; text-transform: uppercase; font-size: 13px;'>Constancia Oficial de Pre-Registro RAEE</p>
+          </div>
+          
+          <p style='font-size: 15px; color: #334155;'>Hola,</p>
+          <p style='font-size: 14px; color: #475569;'>
+            Muchas gracias por sumarte a la red comunitaria de valorización de residuos electrónicos de la Región de Valparaíso.
+          </p>
+          
+          <div style='background-color: #f8fafc; border-left: 4px solid #00D68F; padding: 14px; border-radius: 6px; margin: 20px 0;'>
+            <div style='font-size: 12px; color: #64748b; text-transform: uppercase; font-weight: bold;'>Tu Código Único de Donación</div>
+            <div style='font-size: 24px; color: #0f172a; font-weight: 800; letter-spacing: 1px; margin-top: 2px;'>{cod_donacion}</div>
+            <div style='font-size: 12px; color: #059669; margin-top: 4px;'>Presenta o valida este código en el punto de acopio</div>
+          </div>
+
+          <h3 style='color: #1e293b; font-size: 16px; margin-top: 22px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;'>📋 Resumen Técnico del Dispositivo</h3>
+          <table style='width: 100%; border-collapse: collapse; font-size: 13.5px; color: #334155; margin-top: 10px;'>
+            <tr style='border-bottom: 1px solid #f1f5f9;'>
+              <td style='padding: 8px 0; font-weight: bold; width: 40%; color: #64748b;'>Entidad / Empresa:</td>
+              <td style='padding: 8px 0; color: #0f172a; font-weight: 600;'>{codigo_empresa}</td>
+            </tr>
+            <tr style='border-bottom: 1px solid #f1f5f9;'>
+              <td style='padding: 8px 0; font-weight: bold; color: #64748b;'>Dispositivo:</td>
+              <td style='padding: 8px 0;'>{datos_triage.get('tipo_dispositivo', 'No identificado')}</td>
+            </tr>
+            <tr style='border-bottom: 1px solid #f1f5f9;'>
+              <td style='padding: 8px 0; font-weight: bold; color: #64748b;'>Marca / Modelo:</td>
+              <td style='padding: 8px 0;'>{datos_triage.get('marca_modelo', 'No identificado')}</td>
+            </tr>
+            <tr style='border-bottom: 1px solid #f1f5f9;'>
+              <td style='padding: 8px 0; font-weight: bold; color: #64748b;'>Estado Visual:</td>
+              <td style='padding: 8px 0;'>{datos_triage.get('estado_visual', 'Sin observaciones')}</td>
+            </tr>
+            <tr style='border-bottom: 1px solid #f1f5f9;'>
+              <td style='padding: 8px 0; font-weight: bold; color: #64748b;'>Destino Sugerido:</td>
+              <td style='padding: 8px 0; color: #059669; font-weight: bold;'>{datos_triage.get('destino_triage', 'Reciclaje')}</td>
+            </tr>
+            <tr>
+              <td style='padding: 8px 0; font-weight: bold; color: #64748b;'>Donante:</td>
+              <td style='padding: 8px 0;'>{origen_donacion}</td>
+            </tr>
+          </table>
+
+          {"<div style='margin-top: 20px; text-align: center;'><p style='font-size: 12px; color: #64748b; margin-bottom: 6px;'>Fotografía Registrada:</p><img src='cid:img_equipo' style='max-width: 100%; max-height: 260px; border-radius: 8px; border: 1px solid #e2e8f0;'></div>" if imagen_pil else ""}
+
+          <div style='margin-top: 25px; padding-top: 15px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; text-align: center;'>
+            Club REDE • Circuito de Minería Urbana y Trazabilidad RAEE<br>
+            Plataforma REDE-Trace | Valparaíso, Chile
+          </div>
+        </div>
+      </body>
+    </html>
     """
     msg_alt.attach(MIMEText(html, 'html'))
+
+    if imagen_pil:
+        try:
+            buf_img = io.BytesIO()
+            imagen_pil.save(buf_img, format='JPEG', quality=65)
+            mime_img = MIMEImage(buf_img.getvalue(), name="dispositivo.jpg")
+            mime_img.add_header('Content-ID', '<img_equipo>')
+            msg.attach(mime_img)
+        except Exception as e_att:
+            print(f"No se pudo adjuntar la imagen al correo: {e_att}")
+
     try:
-        server = smtplib.SMTP('smtp.gmail.com', 587)
+        server = smtplib.SMTP('smtp.gmail.com', 587, timeout=20)
         server.starttls()
         server.login(remitente, password)
         server.sendmail(remitente, destinatario, msg.as_string())
         server.quit()
-    except Exception:
-        pass
+        print(f"Correo enviado exitosamente a {destinatario}")
+    except Exception as e_send:
+        print(f"Error al enviar correo por SMTP: {e_send}")
 
 # ==============================================================================
 # --- FLUJO 1: CONFIRMACIÓN DE ENTREGA EN PUNTO FÍSICO (VÍA QR) ---
@@ -575,9 +639,19 @@ with tab1:
                     </div>
                     """, unsafe_allow_html=True)
                     
-                    if correo_usuario:
-                        threading.Thread(target=enviar_correo_resumen, args=(correo_usuario, datos, imgs[0] if imgs else None, origen_donacion)).start()
-                        st.success(f"📧 Se ha enviado un correo con el resumen a: {correo_usuario}")
+                    if correo_usuario.strip():
+                        threading.Thread(
+                            target=enviar_correo_resumen, 
+                            args=(
+                                correo_usuario.strip(), 
+                                datos, 
+                                cod_donacion, 
+                                codigo_empresa.strip(), 
+                                imgs[0] if imgs else None, 
+                                origen_donacion
+                            )
+                        ).start()
+                        st.success(f"📧 Se ha enviado la constancia oficial a: {correo_usuario.strip()}")
                 except Exception as e:
                     st.error(f"Error en el proceso técnico: {e}")
 
