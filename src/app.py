@@ -323,7 +323,9 @@ def enviar_correo_resumen(destinatario, datos_triage, imagen_pil=None, origen_do
 # ==============================================================================
 query_params = st.query_params
 if "punto_id" in query_params:
-    punto_id = query_params["punto_id"]
+    punto_param = query_params["punto_id"]
+    # En versiones recientes de Streamlit, query_params puede devolver una lista o string
+    punto_id = punto_param[0] if isinstance(punto_param, list) else str(punto_param)
     
     st.markdown("""
     <div class='hero-container'>
@@ -342,24 +344,34 @@ if "punto_id" in query_params:
         </div>
         """, unsafe_allow_html=True)
         
-        codigo_pre = st.text_input("Código de Pre-Registro (Ej: REDE-12345)", placeholder="REDE-XXXXX")
+        codigo_pre = st.text_input("Código de Pre-Registro (Ej: REDE-12345)", placeholder="REDE-XXXXX").strip().upper()
         
         if st.button("✅ Confirmar Entrega y Obtener Certificado"):
-            if not codigo_pre.strip():
+            if not codigo_pre:
                 st.warning("Ingresa tu código de donación.")
             elif supabase:
-                res = supabase.table("inventario_dispositivos").select("*").eq("codigo_donacion", codigo_pre.strip()).eq("estado_entrega", "Pendiente").execute()
-                if res.data:
-                    supabase.table("inventario_dispositivos").update({
-                        "estado_entrega": "Entregado",
-                        "origen_donacion": f"Entregado en Punto ID: {punto_id}"
-                    }).eq("codigo_donacion", codigo_pre.strip()).execute()
-                    
-                    st.balloons()
-                    st.success("🎉 ¡Donación recibida exitosamente! El equipo ha ingresado a la red de minería urbana.")
-                    st.info("Ya puedes revisar tus métricas de carbono y circularidad en el Portal de Donantes.")
-                else:
-                    st.error("Código no encontrado o ya fue validado con anterioridad.")
+                try:
+                    res = supabase.table("inventario_dispositivos").select("*").eq("codigo_donacion", codigo_pre).execute()
+                    if res.data and len(res.data) > 0:
+                        item = res.data[0]
+                        estado_actual = item.get("estado_entrega", "Pendiente")
+                        if estado_actual == "Entregado":
+                            st.info("ℹ️ Esta donación ya había sido confirmada previamente.")
+                        else:
+                            supabase.table("inventario_dispositivos").update({
+                                "estado_entrega": "Entregado",
+                                "origen_donacion": f"Entregado en Punto ID: {punto_id}"
+                            }).eq("codigo_donacion", codigo_pre).execute()
+                            
+                            st.balloons()
+                            st.success(f"🎉 ¡Dispositivo '{item.get('tipo_dispositivo', 'Equipo')}' recibido exitosamente! Ha ingresado a la red de minería urbana.")
+                            st.info("Ya puedes revisar tus métricas de carbono y circularidad en el Portal de Donantes.")
+                    else:
+                        st.error(f"Código '{codigo_pre}' no encontrado en la base de datos.")
+                except Exception as e_conf:
+                    st.error(f"Error al verificar en base de datos: {e_conf}")
+            else:
+                st.error("No hay conexión con la base de datos.")
     st.stop()
 
 # ==============================================================================
