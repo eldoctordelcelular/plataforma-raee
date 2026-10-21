@@ -505,7 +505,21 @@ with tab1:
                         "origen_donacion": origen_donacion
                     }
                     if supabase:
-                        supabase.table("inventario_dispositivos").insert(datos_db).execute()
+                        try:
+                            supabase.table("inventario_dispositivos").insert(datos_db).execute()
+                        except Exception as e_db:
+                            # Si la base de datos no tiene aún las columnas nuevas, insertar con esquema base
+                            if "codigo_donacion" in str(e_db):
+                                datos_db_compat = {
+                                    "codigo_empresa": codigo_empresa.strip(),
+                                    "tipo_dispositivo": datos.get("tipo_dispositivo"),
+                                    "marca_modelo": datos.get("marca_modelo"),
+                                    "estado_visual": datos.get("estado_visual"),
+                                    "destino_triage": datos.get("destino_triage")
+                                }
+                                supabase.table("inventario_dispositivos").insert(datos_db_compat).execute()
+                            else:
+                                raise e_db
                     
                     st.markdown(f"""
                     <div style='background: rgba(255, 183, 3, 0.12); border: 2px dashed #FFB703; padding: 20px; border-radius: 12px; text-align: center; margin-top: 20px;'>
