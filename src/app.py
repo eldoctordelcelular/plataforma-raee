@@ -534,16 +534,50 @@ with tab1:
                                 raise e_db
                     
                     st.markdown(f"""
-                    <div style='background: rgba(255, 183, 3, 0.12); border: 2px dashed #FFB703; padding: 20px; border-radius: 12px; text-align: center; margin-top: 20px;'>
+                    <div style='background: rgba(255, 183, 3, 0.12); border: 2px dashed #FFB703; padding: 20px; border-radius: 12px; text-align: center; margin-top: 20px; margin-bottom: 20px;'>
                         <h2 style='color: #FFB703; margin: 0;'>Código de Entrega: {cod_donacion}</h2>
                         <p style='color: #E2E8F0; font-size: 1rem; margin-top: 8px;'>
                             Lleva tu aparato al punto de acopio y escanea el código QR para validar tu entrega física.
                         </p>
                     </div>
                     """, unsafe_allow_html=True)
+
+                    # --- TARJETA DE ANÁLISIS DETALLADO DE IA ---
+                    destino_triage_val = datos.get("destino_triage", "Reciclaje de Metales")
+                    color_destino = "#00D68F" if "Reparación" in destino_triage_val else ("#00B4D8" if "Desarme" in destino_triage_val else "#FFB703")
+
+                    st.markdown(f"""
+                    <div class='rede-card' style='border-color: rgba(0, 214, 143, 0.4);'>
+                        <div style='display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;'>
+                            <h3 style='color: #00D68F; margin: 0;'>🔍 Resultado del Análisis Técnico (IA)</h3>
+                            <span style='background: rgba(0, 214, 143, 0.15); border: 1px solid {color_destino}; color: {color_destino}; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;'>
+                                {destino_triage_val}
+                            </span>
+                        </div>
+                        <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;'>
+                            <div style='background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);'>
+                                <span style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase;'>Dispositivo</span>
+                                <div style='color: #FFFFFF; font-weight: 700; font-size: 1.05rem;'>{datos.get("tipo_dispositivo", "No identificado")}</div>
+                            </div>
+                            <div style='background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);'>
+                                <span style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase;'>Marca / Modelo</span>
+                                <div style='color: #FFFFFF; font-weight: 700; font-size: 1.05rem;'>{datos.get("marca_modelo", "No especificado")}</div>
+                            </div>
+                            <div style='background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);'>
+                                <span style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase;'>Estado Visual</span>
+                                <div style='color: #FFFFFF; font-weight: 600; font-size: 0.95rem;'>{datos.get("estado_visual", "Sin observaciones")}</div>
+                            </div>
+                            <div style='background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);'>
+                                <span style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase;'>Entidad Donante</span>
+                                <div style='color: #00D68F; font-weight: 700; font-size: 1.05rem;'>{codigo_empresa.strip()}</div>
+                            </div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
                     
                     if correo_usuario:
                         threading.Thread(target=enviar_correo_resumen, args=(correo_usuario, datos, imgs[0] if imgs else None, origen_donacion)).start()
+                        st.success(f"📧 Se ha enviado un correo con el resumen a: {correo_usuario}")
                 except Exception as e:
                     st.error(f"Error en el proceso técnico: {e}")
 
