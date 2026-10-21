@@ -587,12 +587,46 @@ with tab3:
     st.markdown("""
     <div class='rede-card'>
         <h3 style='color: #FFB703; margin-top: 0;'>⚙️ Panel de Control de Red de Acopio</h3>
-        <p style='color: #94A3B8; font-size: 0.95rem;'>Habilitación de nuevos negocios asociados y generación automática de señalética QR.</p>
+        <p style='color: #94A3B8; font-size: 0.95rem;'>Acceso restringido para administración de puntos y generación de señalética QR.</p>
     </div>
     """, unsafe_allow_html=True)
     
-    pass_admin = st.text_input("Clave Maestra de Administración", type="password")
-    if pass_admin == "admin123":
+    # Credenciales por defecto configurables desde Secrets o variables de entorno
+    try:
+        ADMIN_USER = st.secrets.get("ADMIN_USER", "admin")
+        ADMIN_PASS = st.secrets.get("ADMIN_PASSWORD", "admin123")
+    except Exception:
+        ADMIN_USER = os.getenv("ADMIN_USER", "admin")
+        ADMIN_PASS = os.getenv("ADMIN_PASSWORD", "admin123")
+
+    if "admin_logueado" not in st.session_state:
+        st.session_state.admin_logueado = False
+
+    if not st.session_state.admin_logueado:
+        st.markdown("<h4 style='color: #00D68F;'>🔐 Iniciar Sesión de Administrador</h4>", unsafe_allow_html=True)
+        col_u, col_p = st.columns(2)
+        with col_u:
+            user_input = st.text_input("Usuario Administrador", placeholder="Ej: admin", key="input_admin_user")
+        with col_p:
+            pass_input = st.text_input("Contraseña", placeholder="••••••••", type="password", key="input_admin_pass")
+            
+        if st.button("Ingresar al Panel"):
+            if user_input.strip() == ADMIN_USER and pass_input == ADMIN_PASS:
+                st.session_state.admin_logueado = True
+                st.rerun()
+            else:
+                st.error("❌ Usuario o contraseña incorrectos.")
+    else:
+        col_hdr1, col_hdr2 = st.columns([4, 1])
+        with col_hdr1:
+            st.success(" Sesión de Administrador activa")
+        with col_hdr2:
+            if st.button("Cerrar Sesión"):
+                st.session_state.admin_logueado = False
+                st.rerun()
+
+        st.markdown("---")
+        st.markdown("### 🏪 Crear Nuevo Punto de Acopio")
         c_pt1, c_pt2 = st.columns(2)
         with c_pt1:
             n_nombre = st.text_input("Nombre del Local Comercial / Almacén", placeholder="Ej: Almacén Don Tito")
@@ -604,22 +638,28 @@ with tab3:
         url_base = st.text_input("URL Pública de la Aplicación", value="https://club-rede.streamlit.app/")
         
         if st.button("📦 Guardar Punto y Generar Señalética QR"):
-            nuevo_id = str(random.randint(100, 999))
-            if supabase:
-                supabase.table("puntos_reciclaje").insert({
-                    "id": nuevo_id, "nombre_negocio": n_nombre,
-                    "direccion": n_dir, "latitud": n_lat, "longitud": n_lon
-                }).execute()
+            if not n_nombre.strip() or not n_dir.strip():
+                st.warning("Por favor completa el nombre y la dirección del local.")
+            else:
+                nuevo_id = str(random.randint(100, 999))
+                if supabase:
+                    try:
+                        supabase.table("puntos_reciclaje").insert({
+                            "id": nuevo_id, "nombre_negocio": n_nombre.strip(),
+                            "direccion": n_dir.strip(), "latitud": n_lat, "longitud": n_lon
+                        }).execute()
+                    except Exception as e_ins:
+                        st.error(f"Error al guardar en base de datos: {e_ins}")
+                    
+                url_qr = f"{url_base.strip().rstrip('/')}/?punto_id={nuevo_id}"
+                qr = qrcode.QRCode(version=1, box_size=10, border=3)
+                qr.add_data(url_qr)
+                qr.make(fit=True)
+                img_qr = qr.make_image(fill_color="#0A0F1D", back_color="#00D68F")
                 
-            url_qr = f"{url_base.strip()}?punto_id={nuevo_id}"
-            qr = qrcode.QRCode(version=1, box_size=10, border=3)
-            qr.add_data(url_qr)
-            qr.make(fit=True)
-            img_qr = qr.make_image(fill_color="#0A0F1D", back_color="#00D68F")
-            
-            buf = BytesIO()
-            img_qr.save(buf, format="PNG")
-            
-            st.success(f"Punto #{nuevo_id} dado de alta con éxito.")
-            st.image(buf.getvalue(), caption=f"Código QR oficial para {n_nombre}", width=260)
-            st.download_button("⬇️ Descargar Señalética QR (PNG)", buf.getvalue(), file_name=f"QR_{nuevo_id}.png", mime="image/png")
+                buf = BytesIO()
+                img_qr.save(buf, format="PNG")
+                
+                st.success(f"Punto #{nuevo_id} dado de alta con éxito.")
+                st.image(buf.getvalue(), caption=f"Código QR oficial para {n_nombre} ({url_qr})", width=260)
+                st.download_button("⬇️ Descargar Señalética QR (PNG)", buf.getvalue(), file_name=f"QR_{nuevo_id}.png", mime="image/png")
