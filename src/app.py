@@ -6,6 +6,11 @@ import threading
 import os
 import json
 import smtplib
+import math
+import random
+import datetime
+import qrcode
+from io import BytesIO
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.image import MIMEImage
@@ -17,59 +22,196 @@ import io
 from xhtml2pdf import pisa
 import plotly.express as px
 import plotly.graph_objects as go
-from fpdf import FPDF
-import datetime
-import random
-import time
-# Ocultar footer, barra de herramientas y elementos flotantes inferiores
-hide_streamlit_style = """
-    <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
-    [data-testid="stDecoration"] {display: none;}
-    [data-testid="stStatusWidget"] {display: none;}
-    [data-testid="stToolbar"] {visibility: hidden !important; display: none !important;}
-    
-    /* Ocultar Streamlit Viewer Badge y Developer Menu flotantes */
-    #viewerBadge {display: none !important;}
-    .viewerBadge_container__1QSob {display: none !important;}
-    .viewerBadge_link__1S137 {display: none !important;}
-    div[data-testid="viewerBadge"] {display: none !important;}
-    a[href^="https://streamlit.io/cloud"] {display: none !important;}
-    
-    /* Ocultar botones de Despliegue y logos inyectados por Streamlit */
-    [data-testid="stAppDeployButton"] {display: none !important;}
-    [data-testid="stLogo"] {display: none !important;}
-    .stDeployButton {display: none !important;}
-    #st-deploy-button {display: none !important;}
-    
-    /* Ocultar el contenedor de botones de administrador inyectado por Streamlit Cloud */
-    div[class^="stActionButton"] {display: none !important;}
-    div[class*="streamlit-developer-menu"] {display: none !important;}
-    iframe[src*="streamlit"] {display: none !important;}
-    
-    /* Regla ultra-genérica para ocultar cualquier botón flotante en la esquina inferior derecha */
-    div[style*="position: fixed"][style*="bottom: 1"][style*="right: 1"] {
-        display: none !important;
-    }
-    div[style*="position: fixed"][style*="bottom:"][style*="right:"] {
-        display: none !important;
-    }
-    </style>
-"""
-st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+from streamlit_geolocation import streamlit_geolocation
 
-# Cargar variables de entorno y configurar Supabase
+# --- CONFIGURACIÓN DE PÁGINA ---
+st.set_page_config(
+    page_title="Club REDE • Trazabilidad y Reciclaje RAEE",
+    page_icon="♻️",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# --- SISTEMA DE DISEÑO VISUAL ELABORADO (CSS MODERNO HIGH-TECH ECO) ---
+custom_css = """
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
+    /* Variables de Color e Identidad */
+    :root {
+        --bg-main: #0a0f1d;
+        --card-bg: rgba(16, 26, 48, 0.75);
+        --card-border: rgba(0, 214, 143, 0.25);
+        --accent-emerald: #00D68F;
+        --accent-cyan: #00B4D8;
+        --accent-gold: #FFB703;
+        --accent-coral: #EF233C;
+        --text-white: #FFFFFF;
+        --text-muted: #94A3B8;
+    }
+
+    /* Ocultar elementos nativos de Streamlit */
+    #MainMenu, footer, header, [data-testid="stDecoration"], [data-testid="stStatusWidget"], [data-testid="stToolbar"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
+    div[style*="position: fixed"][style*="bottom:"] { display: none !important; }
+
+    /* Estilo General del Cuerpo */
+    .stApp {
+        background: radial-gradient(circle at 15% 15%, #0f1c34 0%, #080d1a 100%) !important;
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+        color: #F8FAFC !important;
+    }
+
+    /* Tarjetas de Contenedor con Efecto Glassmorphism */
+    .rede-card {
+        background: rgba(18, 30, 56, 0.65);
+        border: 1px solid rgba(0, 214, 143, 0.2);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border-radius: 16px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .rede-card:hover {
+        border-color: rgba(0, 214, 143, 0.45);
+        transform: translateY(-2px);
+    }
+
+    /* Cabecera Principal Hero */
+    .hero-container {
+        text-align: center;
+        padding: 30px 15px 20px 15px;
+        margin-bottom: 25px;
+        background: linear-gradient(180deg, rgba(0, 214, 143, 0.08) 0%, rgba(10, 15, 29, 0) 100%);
+        border-bottom: 1px solid rgba(0, 214, 143, 0.15);
+    }
+    .hero-badge {
+        display: inline-block;
+        background: rgba(0, 214, 143, 0.15);
+        border: 1px solid #00D68F;
+        color: #00D68F;
+        font-size: 0.8rem;
+        font-weight: 700;
+        letter-spacing: 1.5px;
+        padding: 6px 14px;
+        border-radius: 50px;
+        text-transform: uppercase;
+        margin-bottom: 12px;
+    }
+    .hero-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #FFFFFF 0%, #E2E8F0 50%, #00D68F 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin: 0;
+        line-height: 1.2;
+    }
+    .hero-subtitle {
+        color: #94A3B8;
+        font-size: 1.05rem;
+        margin-top: 8px;
+        font-weight: 400;
+    }
+
+    /* Estilo de los Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 12px;
+        background-color: transparent;
+        justify-content: center;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 12px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 48px;
+        background: rgba(255, 255, 255, 0.04) !important;
+        border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        border-radius: 12px !important;
+        color: #94A3B8 !important;
+        font-weight: 600 !important;
+        padding: 0 24px !important;
+        transition: all 0.3s ease !important;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(135deg, rgba(0, 214, 143, 0.2) 0%, rgba(0, 180, 216, 0.2) 100%) !important;
+        border: 1px solid #00D68F !important;
+        color: #00D68F !important;
+        box-shadow: 0 0 15px rgba(0, 214, 143, 0.3) !important;
+    }
+
+    /* Inputs y Campos de Texto */
+    .stTextInput>div>div>input {
+        background: rgba(15, 23, 42, 0.8) !important;
+        border: 1px solid rgba(255, 255, 255, 0.15) !important;
+        border-radius: 10px !important;
+        color: #FFFFFF !important;
+        font-size: 0.95rem !important;
+        padding: 12px 14px !important;
+    }
+    .stTextInput>div>div>input:focus {
+        border-color: #00D68F !important;
+        box-shadow: 0 0 10px rgba(0, 214, 143, 0.3) !important;
+    }
+
+    /* Botones de Acción Primarios */
+    .stButton>button {
+        background: linear-gradient(135deg, #00D68F 0%, #057A55 100%) !important;
+        color: #0A0F1D !important;
+        font-weight: 700 !important;
+        font-size: 1rem !important;
+        border: none !important;
+        border-radius: 10px !important;
+        padding: 12px 24px !important;
+        letter-spacing: 0.5px !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 4px 14px rgba(0, 214, 143, 0.3) !important;
+        width: 100% !important;
+    }
+    .stButton>button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 6px 20px rgba(0, 214, 143, 0.5) !important;
+        color: #FFFFFF !important;
+    }
+
+    /* Botones de Descarga */
+    .stDownloadButton>button {
+        background: linear-gradient(135deg, #00B4D8 0%, #0077B6 100%) !important;
+        color: #FFFFFF !important;
+        font-weight: 700 !important;
+        border: none !important;
+        border-radius: 10px !important;
+        padding: 12px 24px !important;
+        width: 100% !important;
+    }
+
+    /* Métricas Personalizadas */
+    [data-testid="stMetricValue"] {
+        color: #00D68F !important;
+        font-weight: 800 !important;
+        font-size: 2rem !important;
+    }
+    [data-testid="stMetricLabel"] {
+        color: #94A3B8 !important;
+        font-weight: 600 !important;
+        font-size: 0.9rem !important;
+    }
+</style>
+"""
+st.markdown(custom_css, unsafe_allow_html=True)
+
+# --- INICIALIZACIÓN SUPABASE Y GEMINI ---
 try:
     SUPABASE_URL = st.secrets["SUPABASE_URL"]
     SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 except Exception:
-    import os
-    from dotenv import load_dotenv
     load_dotenv()
     SUPABASE_URL = os.getenv("SUPABASE_URL")
     SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
 supabase = None
 if SUPABASE_URL and SUPABASE_KEY:
     try:
@@ -77,7 +219,6 @@ if SUPABASE_URL and SUPABASE_KEY:
     except Exception as e:
         st.error(f"Error al inicializar cliente Supabase: {e}")
 
-# Configurar Gemini
 api_key = os.getenv('GEMINI_API_KEY')
 if not api_key:
     try:
@@ -87,77 +228,39 @@ if not api_key:
 if api_key:
     genai.configure(api_key=api_key)
 
+# --- FUNCIONES DE CÁLCULO Y OPTIMIZACIÓN ---
+def calcular_distancia(lat1, lon1, lat2, lon2):
+    R = 6371
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon/2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+    return R * c
+
 def optimizar_imagen(imagen_subida):
     img = Image.open(imagen_subida)
     if img.mode in ('RGBA', 'P'):
         img = img.convert('RGB')
-    # Compresión extrema para mayor velocidad (256x256 en lugar de 512x512)
-    img.thumbnail((256, 256))
+    img.thumbnail((320, 320))
     return img
-
-
-@st.cache_data(ttl=3600)
-def obtener_modelos_gemini_cached(_api_key):
-    url_list = f"https://generativelanguage.googleapis.com/v1beta/models?key={_api_key}"
-    modelos_a_probar = []
-    try:
-        res_list = requests.get(url_list, timeout=10)
-        if res_list.status_code == 200:
-            datos_modelos = res_list.json().get("models", [])
-            for m in datos_modelos:
-                metodos = m.get("supportedGenerationMethods", [])
-                if "generateContent" in metodos:
-                    modelos_a_probar.append(m.get("name"))
-    except Exception:
-        pass
-
-    # Si no se pudo listar, usar los identificadores estándar
-    if not modelos_a_probar:
-        modelos_a_probar = [
-            "models/gemini-flash-lite-latest",
-            "models/gemini-2.0-flash",
-            "models/gemini-2.5-pro"
-        ]
-
-    # Ordenar priorizando modelos flash
-    modelos_ordenados = [m for m in modelos_a_probar if "flash" in m.lower()] + \
-                        [m for m in modelos_a_probar if "pro" in m.lower()] + \
-                        modelos_a_probar
-    return list(dict.fromkeys(modelos_ordenados))
 
 def analizar_con_gemini_reintentos(prompt, imagenes_pil):
     if not api_key:
-        raise Exception("Falta configurar la variable GEMINI_API_KEY en tu archivo .env o en Secrets.")
+        raise Exception("Falta configurar la variable GEMINI_API_KEY.")
 
-    # 1. Preparar las partes del contenido (Texto e Imágenes en Base64)
     parts = [{"text": prompt}]
     for img in imagenes_pil:
         buffered = io.BytesIO()
-        # Calidad muy baja (40) para que el archivo pese casi nada y suba al instante
-        img.save(buffered, format="JPEG", quality=40)
+        img.save(buffered, format="JPEG", quality=45)
         img_b64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
-        parts.append({
-            "inline_data": {
-                "mime_type": "image/jpeg",
-                "data": img_b64
-            }
-        })
+        parts.append({"inline_data": {"mime_type": "image/jpeg", "data": img_b64}})
     
-    # Añadir configuracion para forzar JSON nativo (Sugerencia 2)
     payload = {
         "contents": [{"parts": parts}],
-        "generationConfig": {
-            "responseMimeType": "application/json"
-        }
+        "generationConfig": {"responseMimeType": "application/json"}
     }
     headers = {"Content-Type": "application/json"}
-
-    modelos_fallback = [
-        "gemini-flash-lite-latest",
-        "gemini-3.5-flash",
-        "gemini-2.5-pro",
-        "gemini-2.0-flash"
-    ]
+    modelos_fallback = ["gemini-flash-lite-latest", "gemini-2.5-flash", "gemini-2.0-flash"]
     
     errores = []
     for modelo in modelos_fallback:
@@ -165,819 +268,352 @@ def analizar_con_gemini_reintentos(prompt, imagenes_pil):
         try:
             res = requests.post(endpoint, headers=headers, json=payload, timeout=45)
             if res.status_code == 200:
-                data = res.json()
-                return data["candidates"][0]["content"]["parts"][0]["text"]
+                return res.json()["candidates"][0]["content"]["parts"][0]["text"]
             else:
                 errores.append(f"{modelo}: {res.status_code}")
-                # Si falla (429 cuota, 503 saturado, u otro), pasa al siguiente modelo
                 continue
-        except requests.exceptions.RequestException as e_req:
-            errores.append(f"{modelo}: Timeout/Connection")
+        except requests.exceptions.RequestException:
+            errores.append(f"{modelo}: Timeout")
             continue
             
-    raise Exception(f"Los modelos están saturados o sin cuota en este momento. Detalles: {', '.join(errores)}")
+    raise Exception(f"Saturación de modelos. Detalles: {', '.join(errores)}")
 
-
-def enviar_correo_resumen(destinatario, resumen_texto):
+def enviar_correo_resumen(destinatario, datos_triage, imagen_pil=None, origen_donacion="No especificado"):
     remitente = os.getenv("SMTP_EMAIL", "tu_correo@gmail.com")
     password = os.getenv("SMTP_PASSWORD", "tu_contraseña_de_aplicacion")
-    
     if not remitente or not password:
-        raise Exception("Faltan configurar las credenciales SMTP_EMAIL y SMTP_PASSWORD en el archivo .env")
+        return
 
-    msg = MIMEMultipart()
+    msg = MIMEMultipart('related')
     msg['From'] = remitente
     msg['To'] = destinatario
-    msg['Subject'] = "Resumen de Registro - Club REDE"
+    msg['Subject'] = "Constancia de Pre-Registro • Club REDE"
 
-    msg.attach(MIMEText(resumen_texto, 'plain'))
+    msg_alt = MIMEMultipart('alternative')
+    msg.attach(msg_alt)
 
+    html = f"""
+    <html><body style='font-family: Arial, sans-serif; background: #f8fafc; padding: 20px;'>
+      <div style='max-width: 600px; margin: auto; background: #ffffff; border-radius: 8px; padding: 24px; border: 1px solid #e2e8f0;'>
+        <h2 style='color: #057a55; margin-top: 0;'>Club REDE • Reciclaje y Minería Urbana</h2>
+        <p>Hola, muchas gracias por sumarte a la red de reciclaje con propósito social.</p>
+        <p><strong>Detalle del Pre-Registro:</strong></p>
+        <ul>
+          <li><strong>Dispositivo:</strong> {datos_triage.get('tipo_dispositivo', '')}</li>
+          <li><strong>Modelo:</strong> {datos_triage.get('marca_modelo', '')}</li>
+          <li><strong>Estado visual:</strong> {datos_triage.get('estado_visual', '')}</li>
+          <li><strong>Destino sugerido:</strong> {datos_triage.get('destino_triage', '')}</li>
+        </ul>
+        <p>Acércate al punto de acopio más cercano para validar tu entrega y generar tu Certificado Ley REP.</p>
+      </div>
+    </body></html>
+    """
+    msg_alt.attach(MIMEText(html, 'html'))
     try:
         server = smtplib.SMTP('smtp.gmail.com', 587)
         server.starttls()
         server.login(remitente, password)
         server.sendmail(remitente, destinatario, msg.as_string())
         server.quit()
-    except Exception as e:
-        raise Exception(f"No se pudo enviar el correo: {str(e)}")
+    except Exception:
+        pass
 
-def generar_pdf_certificado(entidad, codigo_cert, fecha_str, materia_prima, carbono_evitada, residuos_peligrosos, circ_pct, icl_pct, rcc_val, reparacion, desarme, reciclaje):
-    total = reparacion + desarme + reciclaje
-    if total == 0: total = 1
-    pct_rep = (reparacion / total) * 100
-    pct_des = (desarme / total) * 100
-    pct_rec = (reciclaje / total) * 100
+# ==============================================================================
+# --- FLUJO 1: CONFIRMACIÓN DE ENTREGA EN PUNTO FÍSICO (VÍA QR) ---
+# ==============================================================================
+query_params = st.query_params
+if "punto_id" in query_params:
+    punto_id = query_params["punto_id"]
     
-    html_template = f"""<!DOCTYPE html>
-    <html lang="es">
-    <head>
-    <meta charset="UTF-8">
-    <style>
-      @page {{
-        size: A4 portrait;
-        margin: 18mm 16mm;
-      }}
-      body {{
-        margin: 0;
-        padding: 0;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        color: #1f2937;
-        line-height: 1.45;
-      }}
-      .cert-container {{
-        border: 3px double #1e3a8a;
-        padding: 24px;
-        border-radius: 6px;
-      }}
-      .header {{
-        text-align: center;
-        border-bottom: 2px solid #1e3a8a;
-        padding-bottom: 12px;
-        margin-bottom: 18px;
-      }}
-      .badge {{
-        display: inline-block;
-        background-color: #059669;
-        color: #ffffff;
-        font-size: 9pt;
-        font-weight: bold;
-        padding: 3px 10px;
-        border-radius: 12px;
-        text-transform: uppercase;
-        margin-bottom: 6px;
-      }}
-      .header h1 {{
-        font-size: 16pt;
-        color: #1e3a8a;
-        margin: 4px 0 2px 0;
-        text-transform: uppercase;
-      }}
-      .header h2 {{
-        font-size: 10.5pt;
-        font-weight: normal;
-        color: #374151;
-        margin: 0;
-      }}
-      .intro-text {{
-        font-size: 9.5pt;
-        text-align: justify;
-        margin-bottom: 16px;
-      }}
-      .meta-grid {{
-        width: 100%;
-        margin-bottom: 16px;
-        border-collapse: collapse;
-      }}
-      .meta-grid td {{
-        padding: 6px 10px;
-        font-size: 9pt;
-        background-color: #f8fafc;
-        border: 1px solid #e2e8f0;
-      }}
-      .meta-grid td strong {{
-        color: #1e3a8a;
-      }}
-      .section-title {{
-        font-size: 10.5pt;
-        font-weight: bold;
-        color: #1e3a8a;
-        margin-top: 14px;
-        margin-bottom: 8px;
-        border-left: 4px solid #059669;
-        padding-left: 8px;
-      }}
-      table.data-table {{
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 16px;
-        font-size: 8.5pt;
-      }}
-      table.data-table th {{
-        background-color: #1e3a8a;
-        color: #ffffff;
-        text-align: left;
-        padding: 6px 8px;
-        font-weight: bold;
-        border: 1px solid #1e3a8a;
-      }}
-      table.data-table td {{
-        padding: 5px 8px;
-        border: 1px solid #e2e8f0;
-      }}
-      table.data-table tr:nth-child(even) {{
-        background-color: #f8fafc;
-      }}
-      .statement {{
-        font-size: 8pt;
-        color: #4b5563;
-        border-top: 1px solid #cbd5e1;
-        padding-top: 10px;
-        margin-top: 10px;
-        text-align: justify;
-      }}
-      .signatures {{
-        width: 100%;
-        margin-top: 20px;
-        border-collapse: collapse;
-      }}
-      .signatures td {{
-        width: 50%;
-        text-align: center;
-        vertical-align: bottom;
-        padding: 0 15px;
-      }}
-      .sig-line {{
-        border-top: 1px solid #374151;
-        width: 80%;
-        margin: 25px auto 4px auto;
-      }}
-      .sig-name {{
-        font-size: 8.5pt;
-        font-weight: bold;
-        color: #1f2937;
-      }}
-      .sig-role {{
-        font-size: 7.5pt;
-        color: #6b7280;
-      }}
-      .footer-text {{
-        text-align: center;
-        font-size: 8pt;
-        color: #6b7280;
-        margin-top: 25px;
-      }}
-    </style>
-    </head>
-    <body>
-    <div class="cert-container">
-      <div class="header">
-        <div class="badge">Economía Circular & Trazabilidad RAEE</div>
-        <h1>Certificado de Valorización de Residuos Electrónicos</h1>
-        <h2>Club de Reciclaje y Economía Circular (Club REDE)</h2>
-      </div>
-
-      <table class="meta-grid">
-        <tr>
-          <td style="width: 50%;"><strong>Entidad / Donante:</strong> {entidad}</td>
-          <td style="width: 50%;"><strong>Código de Certificado:</strong> {codigo_cert}</td>
-        </tr>
-        <tr>
-          <td><strong>Fecha de Emisión:</strong> {fecha_str}</td>
-          <td><strong>Protocolo de Manejo:</strong> Clasificación y Triage RAEE v2.4</td>
-        </tr>
-      </table>
-
-      <p class="intro-text">
-        Por medio del presente documento, la Dirección Técnica del <strong>Club REDE</strong> certifica que los Residuos de Aparatos Eléctricos y Electrónicos (RAEE) entregados han sido sometidos a rigurosos procesos de diagnóstico, recuperación y valorización de componentes, mitigando activamente el impacto ambiental y fomentando la economía circular en la Región de Valparaíso.
-      </p>
-
-      <div class="section-title">Métricas y Parámetros de Impacto Ambiental Verificados</div>
-
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th style="width: 45%;">Indicador de Sostenibilidad</th>
-            <th style="width: 25%;">Valor Verificado</th>
-            <th style="width: 30%;">Impacto Operativo / Ambiental</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td><strong>Índice de Circularidad del Material (%)</strong></td>
-            <td>{circ_pct:.1f}%</td>
-            <td>Reintegración directa de piezas a talleres</td>
-          </tr>
-          <tr>
-            <td><strong>Índice de Circularidad Local (ICL)</strong></td>
-            <td>{icl_pct:.1f}%</td>
-            <td>Aprovechamiento y retención regional</td>
-          </tr>
-          <tr>
-            <td><strong>Ratio de Conversión de Chatarra a Activo (RCC)</strong></td>
-            <td>{rcc_val:.1f}x</td>
-            <td>Transformación a repuestos funcionales</td>
-          </tr>
-          <tr>
-            <td><strong>Huella de Materia Prima Desplazada</strong></td>
-            <td>{materia_prima} kg</td>
-            <td>Roca, arena y minerales no extraídos</td>
-          </tr>
-          <tr>
-            <td><strong>Huella de Carbono Evitada</strong></td>
-            <td>{carbono_evitada} kg CO₂e</td>
-            <td>Gases de efecto invernadero mitigados</td>
-          </tr>
-          <tr>
-            <td><strong>Control de Residuos Peligrosos</strong></td>
-            <td>{residuos_peligrosos:.1f} kg</td>
-            <td>Baterías de Li-ion y circuitos neutralizados</td>
-          </tr>
-        </tbody>
-      </table>
-
-      <p class="statement">
-        <strong>Declaración de Cumplimiento:</strong> La valorización de los equipos recibidos previene su disposición en rellenos sanitarios y garantiza la trazabilidad exigida por las normativas de gestión ambiental y economía circular, dotando a los componentes recuperados de una segunda vida útil en la comunidad técnica y estudiantil.
-      </p>
-
-      <div class="section-title">Análisis Visual de Destino de los Equipos</div>
-      <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px; border: 1px solid #cbd5e1; background-color: #f8fafc;">
-        <tr>
-          <td style="width: 25%; font-size: 8.5pt; font-weight: bold; padding: 6px 10px;">Reparación ({pct_rep:.0f}%)</td>
-          <td style="width: 60%; padding: 6px 10px;">
-             <table style="width: 100%; background-color: #e2e8f0; border-collapse: collapse;">
-                <tr><td style="padding: 0;"><table style="width: {pct_rep}%; height: 12px; background-color: #4CAF50; border-collapse: collapse;"><tr><td></td></tr></table></td></tr>
-             </table>
-          </td>
-          <td style="width: 15%; font-size: 8.5pt; text-align: right; padding: 6px 10px;">{reparacion} ud</td>
-        </tr>
-        <tr>
-          <td style="width: 25%; font-size: 8.5pt; font-weight: bold; padding: 6px 10px;">Desarme ({pct_des:.0f}%)</td>
-          <td style="width: 60%; padding: 6px 10px;">
-             <table style="width: 100%; background-color: #e2e8f0; border-collapse: collapse;">
-                <tr><td style="padding: 0;"><table style="width: {pct_des}%; height: 12px; background-color: #FFC107; border-collapse: collapse;"><tr><td></td></tr></table></td></tr>
-             </table>
-          </td>
-          <td style="width: 15%; font-size: 8.5pt; text-align: right; padding: 6px 10px;">{desarme} ud</td>
-        </tr>
-        <tr>
-          <td style="width: 25%; font-size: 8.5pt; font-weight: bold; padding: 6px 10px;">Reciclaje ({pct_rec:.0f}%)</td>
-          <td style="width: 60%; padding: 6px 10px;">
-             <table style="width: 100%; background-color: #e2e8f0; border-collapse: collapse;">
-                <tr><td style="padding: 0;"><table style="width: {pct_rec}%; height: 12px; background-color: #F44336; border-collapse: collapse;"><tr><td></td></tr></table></td></tr>
-             </table>
-          </td>
-          <td style="width: 15%; font-size: 8.5pt; text-align: right; padding: 6px 10px;">{reciclaje} ud</td>
-        </tr>
-      </table>
-
-      <table class="signatures">
-        <tr>
-          <td style="width: 100%;">
-            <div class="sig-line" style="width: 40%; margin: 25px auto 4px auto;"></div>
-            <div class="sig-name">Daniel Bustamante Jara</div>
-            <div class="sig-role">Coordinación General y Dirección Técnica<br>Club REDE</div>
-          </td>
-        </tr>
-      </table>
-      <div class="footer-text">Certificado emitido electrónicamente por Club REDE | Registro de Trazabilidad Ambiental</div>
+    st.markdown("""
+    <div class='hero-container'>
+        <div class='hero-badge'>VALIDACIÓN FÍSICA EN TERRENO</div>
+        <h1 class='hero-title'>Punto de Acopio REDE</h1>
+        <p class='hero-subtitle'>Escaneo verificado en local comercial afiliado</p>
     </div>
-    </body>
-    </html>"""
+    """, unsafe_allow_html=True)
     
-    dest = io.BytesIO()
-    pisa.CreatePDF(io.StringIO(html_template), dest=dest)
-    return dest.getvalue()
+    col_c1, col_c2, col_c3 = st.columns([1, 2, 1])
+    with col_c2:
+        st.markdown(f"""
+        <div class='rede-card' style='text-align: center;'>
+            <h3 style='color: #00D68F; margin-top: 0;'>Punto de Acopio #{punto_id}</h3>
+            <p style='color: #94A3B8;'>Ingresa el código que generaste al tomar la foto del equipo en tu casa:</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        codigo_pre = st.text_input("Código de Pre-Registro (Ej: REDE-12345)", placeholder="REDE-XXXXX")
+        
+        if st.button("✅ Confirmar Entrega y Obtener Certificado"):
+            if not codigo_pre.strip():
+                st.warning("Ingresa tu código de donación.")
+            elif supabase:
+                res = supabase.table("inventario_dispositivos").select("*").eq("codigo_donacion", codigo_pre.strip()).eq("estado_entrega", "Pendiente").execute()
+                if res.data:
+                    supabase.table("inventario_dispositivos").update({
+                        "estado_entrega": "Entregado",
+                        "origen_donacion": f"Entregado en Punto ID: {punto_id}"
+                    }).eq("codigo_donacion", codigo_pre.strip()).execute()
+                    
+                    st.balloons()
+                    st.success("🎉 ¡Donación recibida exitosamente! El equipo ha ingresado a la red de minería urbana.")
+                    st.info("Ya puedes revisar tus métricas de carbono y circularidad en el Portal de Donantes.")
+                else:
+                    st.error("Código no encontrado o ya fue validado con anterioridad.")
+    st.stop()
 
-def generar_pdf_lista_equipos(entidad, df_equipos):
-    html_template = f"""<!DOCTYPE html>
-    <html lang="es">
-    <head>
-    <meta charset="UTF-8">
-    <style>
-      @page {{
-        size: A4 portrait;
-        margin: 18mm 16mm;
-      }}
-      body {{
-        margin: 0;
-        padding: 0;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        color: #1f2937;
-        line-height: 1.45;
-      }}
-      .cert-container {{
-        border: 3px double #1e3a8a;
-        padding: 24px;
-        border-radius: 6px;
-      }}
-      .header {{
-        text-align: center;
-        border-bottom: 2px solid #1e3a8a;
-        padding-bottom: 12px;
-        margin-bottom: 18px;
-      }}
-      .header h1 {{
-        font-size: 16pt;
-        color: #1e3a8a;
-        margin: 4px 0 2px 0;
-        text-transform: uppercase;
-      }}
-      .header h2 {{
-        font-size: 10.5pt;
-        font-weight: normal;
-        color: #374151;
-        margin: 0;
-      }}
-      .section-title {{
-        font-size: 12pt;
-        font-weight: bold;
-        color: #1e3a8a;
-        margin-top: 14px;
-        margin-bottom: 12px;
-        border-left: 4px solid #059669;
-        padding-left: 8px;
-      }}
-      table.data-table {{
-        width: 100%;
-        border-collapse: collapse;
-        margin-bottom: 16px;
-        font-size: 9pt;
-      }}
-      table.data-table th {{
-        background-color: #1e3a8a;
-        color: #ffffff;
-        text-align: left;
-        padding: 6px 8px;
-        font-weight: bold;
-        border: 1px solid #1e3a8a;
-      }}
-      table.data-table td {{
-        padding: 5px 8px;
-        border: 1px solid #e2e8f0;
-      }}
-      table.data-table tr:nth-child(even) {{
-        background-color: #f8fafc;
-      }}
-      .footer-text {{
-        text-align: center;
-        font-size: 8pt;
-        color: #6b7280;
-        margin-top: 25px;
-      }}
-    </style>
-    </head>
-    <body>
-    <div class="cert-container">
-      <div class="header">
-        <h1>Reporte de Equipos Donados</h1>
-        <h2>Club de Reciclaje y Economía Circular (Club REDE)</h2>
-      </div>
-      
-      <p><strong>Entidad / Donante:</strong> {entidad}</p>
-      
-      <div class="section-title">Historial de Donaciones</div>
+# ==============================================================================
+# --- FLUJO 2: APLICACIÓN PRINCIPAL (PORTAL REDE) ---
+# ==============================================================================
+st.markdown("""
+<div class='hero-container'>
+    <div class='hero-badge'>CIRCUITO DE MINERÍA URBANA Y LEY REP</div>
+    <h1 class='hero-title'>Club REDE • Valparaíso</h1>
+    <p class='hero-subtitle'>Plataforma inteligente de clasificación, geolocalización y trazabilidad comunitaria</p>
+</div>
+""", unsafe_allow_html=True)
 
-      <table class="data-table">
-        <thead>
-          <tr>
-            {"".join(f"<th>{col}</th>" for col in df_equipos.columns)}
-          </tr>
-        </thead>
-        <tbody>
-          {"".join(
-              "<tr>" + "".join(f"<td>{str(val)}</td>" for val in row) + "</tr>"
-              for row in df_equipos.values
-          )}
-        </tbody>
-      </table>
-      
-      <div class="footer-text">Documento generado automáticamente por Club REDE | Registro de Trazabilidad Ambiental</div>
-    </div>
-    </body>
-    </html>"""
-    
-    dest = io.BytesIO()
-    pisa.CreatePDF(io.StringIO(html_template), dest=dest)
-    return dest.getvalue()
+tab1, tab2, tab3 = st.tabs([
+    "  📸 Clasificador y Pre-Registro  ",
+    "  📊 Portal Donantes e Impacto  ",
+    "  ⚙️ Administración y Puntos  "
+])
 
-
-st.markdown(
-    "<h1 style='text-align: center;'>Clasificador de Residuos <br><span style='color: #2e7d32; font-weight: bold;'>Club REDE</span></h1>", 
-    unsafe_allow_html=True
-)
-
-tab1, tab2, tab3 = st.tabs(["📸 Clasificador y Registro", "📊 Portal Donantes", "⚙️ Admin"])
-
+# ------------------------------------------------------------------------------
+# TAB 1: CLASIFICADOR Y PRE-REGISTRO
+# ------------------------------------------------------------------------------
 with tab1:
+    st.markdown("""
+    <div class='rede-card'>
+        <h3 style='color: #00B4D8; margin-top: 0;'>📍 1. Localiza tu Punto de Acopio Más Cercano</h3>
+        <p style='color: #94A3B8; font-size: 0.95rem;'>Activa el GPS de tu dispositivo para identificar el negocio de barrio donde puedes entregar tu equipo.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    ubicacion = streamlit_geolocation()
+    lat_usuario = ubicacion.get('latitude')
+    lon_usuario = ubicacion.get('longitude')
+    
+    if lat_usuario and lon_usuario and supabase:
+        res_puntos = supabase.table("puntos_reciclaje").select("*").execute()
+        if res_puntos.data:
+            distancia_minima = float('inf')
+            punto_cercano = None
+            for p in res_puntos.data:
+                d = calcular_distancia(lat_usuario, lon_usuario, p['latitud'], p['longitud'])
+                if d < distancia_minima:
+                    distancia_minima = d
+                    punto_cercano = p
+            if punto_cercano:
+                st.markdown(f"""
+                <div style='background: rgba(0, 214, 143, 0.1); border-left: 4px solid #00D68F; padding: 16px; border-radius: 8px; margin-bottom: 20px;'>
+                    <strong style='color: #00D68F; font-size: 1.1rem;'>🏪 Punto sugerido: {punto_cercano['nombre_negocio']}</strong><br>
+                    <span style='color: #E2E8F0;'>📍 Dirección: {punto_cercano['direccion']}</span><br>
+                    <span style='color: #94A3B8;'>Distancia estimada: {distancia_minima:.1f} km</span>
+                </div>
+                """, unsafe_allow_html=True)
+
+    st.markdown("""
+    <div class='rede-card'>
+        <h3 style='color: #00D68F; margin-top: 0;'>📷 2. Diagnóstico Visual con Inteligencia Artificial</h3>
+        <p style='color: #94A3B8; font-size: 0.95rem;'>Toma fotografías claras de las placas o del dispositivo para evaluar su potencial de minería urbana.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
     if "registro_key" not in st.session_state:
         st.session_state.registro_key = 0
-
-
-
     rk = st.session_state.registro_key
 
-    col1, col2 = st.columns(2)
-    with col1:
-        activar_frontal = st.checkbox("Activar Cámara para Foto Frontal", key=f"act_front_{rk}")
-        if activar_frontal:
-            foto_frontal = st.camera_input("Tomar Foto Frontal", key=f"cam_front_{rk}")
-            if foto_frontal is not None:
-                try:
-                    st.session_state[f"img_front_{rk}"] = optimizar_imagen(foto_frontal)
-                except Exception as e:
-                    st.error(f"Error procesando imagen: {e}")
-            if f"img_front_{rk}" in st.session_state:
-                st.image(st.session_state[f"img_front_{rk}"], width=200, caption="✅ Foto Frontal lista")
-            
-    with col2:
-        activar_trasera = st.checkbox("Activar Cámara para Foto Trasera", key=f"act_tras_{rk}")
-        if activar_trasera:
-            foto_trasera = st.camera_input("Tomar Foto Trasera", key=f"cam_tras_{rk}")
-            if foto_trasera is not None:
-                try:
-                    st.session_state[f"img_tras_{rk}"] = optimizar_imagen(foto_trasera)
-                except Exception as e:
-                    st.error(f"Error procesando imagen: {e}")
-            if f"img_tras_{rk}" in st.session_state:
-                st.image(st.session_state[f"img_tras_{rk}"], width=200, caption="✅ Foto Trasera lista")
-            
-    codigo_empresa = st.text_input("Código Institucional / Empresa (Obligatorio)", key=f"cod_{rk}")
-    observaciones = st.text_input("TIPO DE DISPOSITIVO", key=f"obs_{rk}")
-    origen_donacion = st.text_input("Origen de la donación (Nombre de persona, empresa o institución)", key=f"orig_{rk}")
-    correo_usuario = st.text_input("Correo electrónico para recibir el resumen", key=f"correo_{rk}")
-    
-    if st.button("Analizar y Registrar"):
-        tiene_foto = f"img_front_{rk}" in st.session_state or f"img_tras_{rk}" in st.session_state
+    c_cam1, c_cam2 = st.columns(2)
+    with c_cam1:
+        st.markdown("<h5 style='color: #00B4D8;'>Vista Frontal</h5>", unsafe_allow_html=True)
+        if st.checkbox("Encender Cámara Frontal", key=f"chk_f_{rk}"):
+            f_front = st.camera_input("Capturar", key=f"cam_f_{rk}")
+            if f_front:
+                st.session_state[f"img_f_{rk}"] = optimizar_imagen(f_front)
+            if f"img_f_{rk}" in st.session_state:
+                st.image(st.session_state[f"img_f_{rk}"], width=220, caption="Frontal OK")
+
+    with c_cam2:
+        st.markdown("<h5 style='color: #00B4D8;'>Vista Trasera / Placa</h5>", unsafe_allow_html=True)
+        if st.checkbox("Encender Cámara Trasera", key=f"chk_t_{rk}"):
+            f_back = st.camera_input("Capturar", key=f"cam_t_{rk}")
+            if f_back:
+                st.session_state[f"img_t_{rk}"] = optimizar_imagen(f_back)
+            if f"img_t_{rk}" in st.session_state:
+                st.image(st.session_state[f"img_t_{rk}"], width=220, caption="Trasera OK")
+
+    st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
+    c_in1, c_in2 = st.columns(2)
+    with c_in1:
+        codigo_empresa = st.text_input("Código de Entidad / Empresa", placeholder="Ej: INACAP, COLEGIO-ALBORADA", key=f"cod_{rk}")
+        origen_donacion = st.text_input("Nombre del Donante / Institución", placeholder="Ej: Daniel Bustamante", key=f"org_{rk}")
+    with c_in2:
+        observaciones = st.text_input("Observación del Equipo", placeholder="Ej: Router dañado, no enciende", key=f"obs_{rk}")
+        correo_usuario = st.text_input("Correo para Recibir Constancia", placeholder="ejemplo@correo.cl", key=f"mail_{rk}")
+
+    if st.button("🚀 Analizar Dispositivo y Generar Pre-Registro"):
+        tiene_foto = f"img_f_{rk}" in st.session_state or f"img_t_{rk}" in st.session_state
         if not tiene_foto:
-            st.error("Por favor, toma al menos una foto (frontal o trasera) del equipo primero.")
+            st.warning("⚠️ Debes capturar al menos una fotografía del aparato.")
         elif not codigo_empresa.strip():
-            st.error("Por favor, ingresa el Código Institucional / Empresa.")
-        elif not supabase:
-            st.error("Error: Configuración de Supabase inválida o faltante en el archivo .env.")
-        elif not os.getenv("GEMINI_API_KEY"):
-            st.error("Error: Clave API de Gemini faltante en el archivo .env.")
+            st.warning("⚠️ El código de entidad es obligatorio para asignar las métricas.")
         else:
-            try:
-                with st.spinner("⏳ Analizando componentes y registrando en la base de datos..."):
-                    images = []
-                    if f"img_front_{rk}" in st.session_state:
-                        images.append(st.session_state[f"img_front_{rk}"])
-                    if f"img_tras_{rk}" in st.session_state:
-                        images.append(st.session_state[f"img_tras_{rk}"])
-                    
-                    prompt = """
-Eres un ingeniero experto en hardware y reciclaje electrónico para el Club REDE.
-Analiza la imagen del residuo/dispositivo y devuelve estrictamente un objeto JSON con esta estructura técnica de hardware.
-Si la imagen NO corresponde a un dispositivo electrónico claro, asigna "No Válido" al campo "destino_triage".
-Para un dispositivo válido, el "destino_triage" DEBE ser estrictamente una de las siguientes opciones: "Reparación para Donación", "Desarme de Repuestos", o "Reciclaje de Metales".
-{
-  "tipo_dispositivo": "string",
-  "marca_modelo": "string",
-  "estado_visual": "string",
-  "estado_tipo_bateria": "string (tecnología, estado físico o indicación de si no posee)",
-  "destino_triage": "string"
-}
-"""
-                    
-                    try:
-                        response_text = analizar_con_gemini_reintentos(prompt, images)
-                    except Exception as e:
-                        st.error(f"Error técnico detallado: {str(e)}")
-                        st.stop()
-                    
-                    # Intentar limpiar la respuesta de posibles bloques markdown de JSON
-                    response_text = response_text.strip()
-                    if response_text.startswith("```json"):
-                        response_text = response_text[7:]
-                    if response_text.startswith("```"):
-                        response_text = response_text[3:]
-                    if response_text.endswith("```"):
-                        response_text = response_text[:-3]
-                    
-                    response_text = response_text.strip()
-                    
-                    # Parsear el string JSON retornado por la IA
-                    datos_triage = json.loads(response_text)
-                    
-                    destino_eval = str(datos_triage.get("destino_triage", "")).strip()
-                    categorias_validas = ["Reparación para Donación", "Desarme de Repuestos", "Reciclaje de Metales"]
-                    es_valido = any(cat.lower() == destino_eval.lower() for cat in categorias_validas)
-                    
-                    if "No Válido" in destino_eval or not es_valido:
-                        st.warning("No se detectó un dispositivo electrónico claro. Por favor, toma otra fotografía.")
-                    else:
-                        # Insertar los datos en Supabase
-                        datos_db = {
-                            "codigo_empresa": codigo_empresa.strip(),
-                            "tipo_dispositivo": datos_triage.get("tipo_dispositivo"),
-                            "marca_modelo": datos_triage.get("marca_modelo"),
-                            "estado_visual": datos_triage.get("estado_visual"),
-                            "estado_tipo_bateria": datos_triage.get("estado_tipo_bateria"),
-                            "destino_triage": destino_eval,
-                            "observaciones_ingreso": observaciones,
-                            "origen_donacion": origen_donacion
-                        }
-                        
-                        response_db = supabase.table("inventario_dispositivos").insert(datos_db).execute()
-                        
-                        st.session_state.success_data = datos_triage
-                        
-                        if correo_usuario:
-                            def enviar_correo_bg(dest, res_texto):
-                                try:
-                                    enviar_correo_resumen(dest, res_texto)
-                                except Exception as e:
-                                    print(f"Error enviando correo en segundo plano: {e}")
-                                    
-                            # Enviar correo en segundo plano para no hacer esperar al usuario
-                            threading.Thread(target=enviar_correo_bg, args=(correo_usuario, response_text)).start()
-                            st.session_state.success_email = f"¡Resumen en proceso de envío a {correo_usuario}!"
-                                
-                        st.rerun()
+            with st.spinner("⚡ Procesando con redes convolucionales y catalogando componentes..."):
+                imgs = []
+                if f"img_f_{rk}" in st.session_state: imgs.append(st.session_state[f"img_f_{rk}"])
+                if f"img_t_{rk}" in st.session_state: imgs.append(st.session_state[f"img_t_{rk}"])
                 
-            except json.JSONDecodeError:
-                st.error("Error: La Inteligencia Artificial no retornó un formato JSON válido. Intenta nuevamente.")
-                st.write("Respuesta cruda de la IA:")
-                st.code(response_text)
-            except Exception as e:
-                st.error(f"Ocurrió un error inesperado durante el procesamiento: {str(e)}")
-                
-    if "success_data" in st.session_state:
-        st.markdown("---")
-        st.success("¡Registro completado!")
-        st.json(st.session_state.success_data)
-        
-        if "success_email" in st.session_state:
-            st.success(st.session_state.success_email)
-            
-        if st.button("➕ Ingresar Nuevo Registro", key="btn_nuevo_registro"):
-            st.session_state.registro_key += 1
-            del st.session_state.success_data
-            if "success_email" in st.session_state:
-                del st.session_state.success_email
-            st.rerun()
-
-with tab2:
-    st.markdown("<h2 style='text-align: center; color: #4CAF50;'>¡Bienvenido a tu Portal de Donante! 🌟</h2>", unsafe_allow_html=True)
-    codigo_ingreso = st.text_input("Ingresa tu código para ver tu impacto:", type="password")
-    
-    if st.button("Ver mi impacto"):
-        if not codigo_ingreso.strip():
-            st.warning("Por favor, ingresa tu código para continuar.")
-        elif supabase:
-            try:
-                with st.spinner("Buscando tus buenas acciones..."):
-                    response_db = supabase.table("inventario_dispositivos").select("*").eq("codigo_empresa", codigo_ingreso.strip()).execute()
-                    data = response_db.data
-                    
-                if data:
-                    df = pd.DataFrame(data)
-                    if 'created_at' in df.columns:
-                        df['created_at'] = pd.to_datetime(df['created_at'])
-                    
-                    if 'cantidad_unidades' in df.columns:
-                        total_unidades = int(df['cantidad_unidades'].sum())
-                    else:
-                        total_unidades = len(df)
-                    
-                    # Cálculos dinámicos coherentes
-                    materia_prima = 0
-                    carbono_evitada = 0
-                    residuos_peligrosos = 0
-                    reparacion = 0
-                    desarme = 0
-                    reciclaje = 0
-
-                    for _, row in df.iterrows():
-                        tipo = str(row.get('tipo_dispositivo', '')).lower()
-                        destino = str(row.get('destino_triage', '')).strip()
-                        
-                        if "computador" in tipo or "pc" in tipo or "torre" in tipo:
-                            materia_prima += 45
-                            carbono_evitada += 150
-                            residuos_peligrosos += 1.0
-                        elif "laptop" in tipo or "notebook" in tipo:
-                            materia_prima += 35
-                            carbono_evitada += 100
-                            residuos_peligrosos += 0.3
-                        elif "celular" in tipo or "teléfono" in tipo or "smartphone" in tipo:
-                            materia_prima += 12
-                            carbono_evitada += 30
-                            residuos_peligrosos += 0.08
-                        elif "monitor" in tipo or "pantalla" in tipo:
-                            materia_prima += 25
-                            carbono_evitada += 50
-                            residuos_peligrosos += 0.5
-                        else:
-                            materia_prima += 15
-                            carbono_evitada += 20
-                            residuos_peligrosos += 0.2
-                            
-                        if destino == "Reparación para Donación":
-                            reparacion += 1
-                        elif destino == "Desarme de Repuestos":
-                            desarme += 1
-                        else:
-                            reciclaje += 1
-
-                    total = reparacion + desarme + reciclaje
-                    if total == 0:
-                        total = 1
-
-                    circ_pct = max(((reparacion + desarme) / total) * 100, 45.0)
-                    icl_pct = min(((reparacion / total) * 100) + 40.0, 98.0)
-                    rcc_val = max(total * 1.5 if reciclaje == 0 else (reparacion + desarme) / reciclaje, 1.2)
-
-                    st.title("♻️ Portal de Economía Circular y Sostenibilidad")
-                    st.write("Métricas clave de impacto ambiental, eficiencia de taller y gestión de residuos del Club REDE:")
-
-                    # Bloque 1 de métricas principales
-                    col_1, col_2, col_3 = st.columns(3)
-                    with col_1:
-                        st.metric(label="🔄 Índice de Circularidad", value=f"{circ_pct:.1f}%", delta="Componentes rescatados")
-                    with col_2:
-                        st.metric(label="📍 Circularidad Local (ICL)", value=f"{icl_pct:.1f}%", delta="Impacto en región")
-                    with col_3:
-                        st.metric(label="⚙️ Ratio de Conversión (RCC)", value=f"{rcc_val:.1f}x", delta="Chatarra a activo")
-
-                    # Bloque 2 de métricas principales (Los nuevos indicadores solicitados)
-                    col_4, col_5, col_6 = st.columns(3)
-                    with col_4:
-                        st.metric(label="🌍 Materia Prima Desplazada", value=f"{materia_prima:.1f} kg", delta="Roca salvada")
-                    with col_5:
-                        st.metric(label="🚗 Huella de Carbono Evitada", value=f"{carbono_evitada:.1f} kg", delta="CO₂e mitigado")
-                    with col_6:
-                        st.metric(label="🛡️ Residuos Peligrosos", value=f"{residuos_peligrosos:.2f} kg", delta="Componentes controlados")
-
-                    st.markdown("---")
-
-                    st.markdown("### 📊 Análisis de Impacto y Trazabilidad")
-                    
-                    # Gráficos de Plotly
-                    col_graf_1, col_graf_2 = st.columns(2)
-                    
-                    with col_graf_1:
-                        # Gráfico de destino de los equipos (Donut)
-                        labels = ['Reparación', 'Desarme', 'Reciclaje']
-                        values = [reparacion, desarme, reciclaje]
-                        fig_destino = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.5, marker_colors=['#4CAF50', '#FFC107', '#F44336'])])
-                        fig_destino.update_layout(title_text="Destino de los Equipos", margin=dict(t=40, b=0, l=0, r=0), height=300)
-                        st.plotly_chart(fig_destino, use_container_width=True)
-                        
-                    with col_graf_2:
-                        # Gráfico de barras de impacto ambiental
-                        impacto_labels = ['Materia Prima (kg)', 'Carbono Evitado (kg CO₂e)']
-                        impacto_values = [materia_prima, carbono_evitada]
-                        fig_impacto = px.bar(x=impacto_labels, y=impacto_values, text_auto=True, color=impacto_labels, color_discrete_sequence=['#8D6E63', '#607D8B'])
-                        fig_impacto.update_layout(title_text="Métricas Ambientales", xaxis_title="", yaxis_title="Kilogramos", showlegend=False, margin=dict(t=40, b=0, l=0, r=0), height=300)
-                        st.plotly_chart(fig_impacto, use_container_width=True)
-
-                    st.markdown("---")
-                    st.markdown("<h2 style='text-align: center; color: #1E3A8A;'>CERTIFICADO DE VALORIZACIÓN DE RESIDUOS ELECTRÓNICOS (RAEE)</h2>", unsafe_allow_html=True)
-                    st.markdown("<p style='text-align: center; font-weight: bold; color: #4B5563;'>CLUB DE RECICLAJE Y ECONOMÍA CIRCULAR (CLUB REDE)</p>", unsafe_allow_html=True)
-                    st.markdown("---")
-
-                    # Contenedor con estilo de documento formal
-                    with st.container():
-                        st.markdown(f"""
-                        **Documento de Constancia Oficial de Sostenibilidad**  
-                        *Fecha de emisión:* {datetime.datetime.now().strftime('%d/%m/%Y')}  
-                        *Código de Registro / Entidad:* **{codigo_ingreso}**
-
-                        Por medio del presente documento, el **Club REDE** certifica formalmente que la entidad mencionada ha cumplido rigurosamente con los protocolos de gestión, trazabilidad y valorización de Residuos de Aparatos Eléctricos y Electrónicos (RAEE), fomentando la economía circular y la reutilización tecnológica en la región de Valparaíso.
-                        """)
-
-                        st.markdown("### 📋 Resumen de Métricas de Valorización y Impacto Ambiental")
-                        
-                        # Tabla formal de indicadores
-                        datos_certificado = {
-                            "Indicador de Sostenibilidad": [
-                                "Índice de Circularidad del Material",
-                                "Índice de Circularidad Local (ICL)",
-                                "Ratio de Conversión de Chatarra a Activo (RCC)",
-                                "Huella de Materia Prima Desplazada",
-                                "Huella de Carbono Evitada",
-                                "Control de Residuos Peligrosos"
-                            ],
-                            "Valor Verificado": [
-                                f"{circ_pct:.1f}% (Componentes rescatados)",
-                                f"{icl_pct:.1f}% (Impacto en región)",
-                                f"{rcc_val:.1f}x (Conversión a activo útil)",
-                                f"{materia_prima} kg (Roca y minerales salvados)",
-                                f"{carbono_evitada} kg de CO₂e (Mitigación global)",
-                                f"{residuos_peligrosos:.1f} kg (Baterías y confinados)"
-                            ]
-                        }
-                        st.table(datos_certificado)
-
-                        st.markdown("""
-                        ---
-                        *Este certificado avala que los dispositivos e insumos ingresados fueron procesados bajo estrictas normas técnicas de diagnóstico, separación de componentes y mitigación ambiental, evitando su disposición en vertederos y dándoles un nuevo ciclo de vida útil para la comunidad.*
-
-                        **Validación Institucional:**  
-                        Dirección de Operaciones y Sostenibilidad — Club REDE.
-                        """)
-
-                    fecha_actual = datetime.datetime.now().strftime('%d/%m/%Y')
-                    codigo_certificado = f"REDE-RAEE-{datetime.datetime.now().strftime('%Y%m%d')}"
-                    pdf_data = generar_pdf_certificado(
-                        codigo_ingreso, 
-                        codigo_certificado, 
-                        fecha_actual,
-                        materia_prima,
-                        carbono_evitada,
-                        residuos_peligrosos,
-                        circ_pct,
-                        icl_pct,
-                        rcc_val,
-                        reparacion,
-                        desarme,
-                        reciclaje
-                    )
-
-                    st.download_button(
-                        label="📄 Descargar Certificado Oficial en PDF",
-                        data=pdf_data,
-                        file_name=f"Certificado_Valorizacion_RAEE_{codigo_ingreso}.pdf",
-                        mime="application/pdf"
-                    )
-                    
-                    columnas_simples = []
-                    nombres_columnas = {}
-                    if 'created_at' in df.columns:
-                        columnas_simples.append('created_at')
-                        nombres_columnas['created_at'] = 'Fecha'
-                    if 'tipo_dispositivo' in df.columns:
-                        columnas_simples.append('tipo_dispositivo')
-                        nombres_columnas['tipo_dispositivo'] = 'Lo que donaste'
-                    if 'destino_triage' in df.columns:
-                        columnas_simples.append('destino_triage')
-                        nombres_columnas['destino_triage'] = 'Su nuevo destino'
-                        
-                    if columnas_simples:
-                        df_simple = df[columnas_simples].copy()
-                        df_simple.rename(columns=nombres_columnas, inplace=True)
-                        if 'Fecha' in df_simple.columns:
-                            df_simple['Fecha'] = df_simple['Fecha'].dt.strftime('%d-%m-%Y')
-                        st.dataframe(df_simple.tail(10), use_container_width=True, hide_index=True)
-                        
-                        pdf_equipos = generar_pdf_lista_equipos(codigo_ingreso, df_simple)
-                        st.download_button(
-                            label="📥 Descargar Resumen de Equipos Donados (.pdf)",
-                            data=pdf_equipos,
-                            file_name=f"Resumen_Donaciones_{codigo_ingreso}.pdf",
-                            mime="application/pdf"
-                        )
-                    
-                else:
-                    st.info("Aún no tienes registros con este código. ¡Anímate a hacer tu primera donación! 💚")
-            except Exception as e:
-                st.error(f"Ocurrió un error al cargar tus datos: {e}")
-        else:
-            st.error("Lo sentimos, el sistema de base de datos no está disponible en este momento.")
-
-with tab3:
-    st.markdown("<h2 style='text-align: center; color: #555;'>Panel de Administración</h2>", unsafe_allow_html=True)
-    admin_password = st.text_input("Contraseña de administrador:", type="password")
-    
-    if st.button("Ingresar al panel"):
-        if admin_password == "admin123":
-            if supabase:
+                prompt = """
+                Analiza el residuo electrónico y responde en estricto formato JSON:
+                {
+                  "tipo_dispositivo": "string",
+                  "marca_modelo": "string",
+                  "estado_visual": "string",
+                  "destino_triage": "string (Reparación para Donación, Desarme de Repuestos, o Reciclaje de Metales)"
+                }
+                """
                 try:
-                    with st.spinner("Cargando códigos..."):
-                        res = supabase.table("inventario_dispositivos").select("codigo_empresa").execute()
-                        if res.data:
-                            codigos = list(set([x.get("codigo_empresa") for x in res.data if x.get("codigo_empresa")]))
-                            st.success("Lista de todos los códigos institucionales / empresa registrados:")
-                            
-                            # Mostrar como lista más amigable
-                            for cod in codigos:
-                                st.markdown(f"- **{cod}**")
-                        else:
-                            st.info("No hay registros aún.")
+                    resp = analizar_con_gemini_reintentos(prompt, imgs)
+                    resp = resp.replace("```json", "").replace("```", "").strip()
+                    datos = json.loads(resp)
+                    
+                    cod_donacion = f"REDE-{random.randint(10000, 99999)}"
+                    
+                    datos_db = {
+                        "codigo_empresa": codigo_empresa.strip(),
+                        "codigo_donacion": cod_donacion,
+                        "estado_entrega": "Pendiente",
+                        "tipo_dispositivo": datos.get("tipo_dispositivo"),
+                        "marca_modelo": datos.get("marca_modelo"),
+                        "estado_visual": datos.get("estado_visual"),
+                        "destino_triage": datos.get("destino_triage"),
+                        "observaciones_ingreso": observaciones,
+                        "origen_donacion": origen_donacion
+                    }
+                    if supabase:
+                        supabase.table("inventario_dispositivos").insert(datos_db).execute()
+                    
+                    st.markdown(f"""
+                    <div style='background: rgba(255, 183, 3, 0.12); border: 2px dashed #FFB703; padding: 20px; border-radius: 12px; text-align: center; margin-top: 20px;'>
+                        <h2 style='color: #FFB703; margin: 0;'>Código de Entrega: {cod_donacion}</h2>
+                        <p style='color: #E2E8F0; font-size: 1rem; margin-top: 8px;'>
+                            Lleva tu aparato al punto de acopio y escanea el código QR para validar tu entrega física.
+                        </p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    if correo_usuario:
+                        threading.Thread(target=enviar_correo_resumen, args=(correo_usuario, datos, imgs[0] if imgs else None, origen_donacion)).start()
                 except Exception as e:
-                    st.error(f"Error cargando códigos: {e}")
-            else:
-                st.error("Base de datos no conectada.")
-        elif admin_password:
-            st.error("Contraseña incorrecta.")
+                    st.error(f"Error en el proceso técnico: {e}")
+
+# ------------------------------------------------------------------------------
+# TAB 2: PORTAL DONANTES E IMPACTO AMBIENTAL
+# ------------------------------------------------------------------------------
+with tab2:
+    st.markdown("""
+    <div class='rede-card'>
+        <h3 style='color: #00D68F; margin-top: 0;'>📊 Consulta de Impacto Comunitario y Certificados Ley REP</h3>
+        <p style='color: #94A3B8; font-size: 0.95rem;'>Ingresa tu código institucional para cuantificar el impacto ambiental y social de tus donaciones entregadas.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col_d1, col_d2 = st.columns([2, 1])
+    with col_d1:
+        cod_check = st.text_input("Código de Entidad / Empresa", placeholder="Ej: COLEGIO-ALBORADA", type="password")
+    with col_d2:
+        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+        btn_check = st.button("Consultar Métricas")
+        
+    if btn_check and cod_check.strip() and supabase:
+        res = supabase.table("inventario_dispositivos").select("*").eq("codigo_empresa", cod_check.strip()).eq("estado_entrega", "Entregado").execute()
+        if res.data:
+            df = pd.DataFrame(res.data)
+            
+            # Cálculo de variables
+            rep = len(df[df['destino_triage'] == "Reparación para Donación"])
+            des = len(df[df['destino_triage'] == "Desarme de Repuestos"])
+            rec = len(df[df['destino_triage'] == "Reciclaje de Metales"])
+            total = len(df)
+            
+            co2 = total * 45.5
+            mat = total * 14.2
+            circ = ((rep + des) / total) * 100 if total > 0 else 0
+            
+            m1, m2, m3, m4 = st.columns(4)
+            m1.metric("Equipos Entregados", f"{total} uds")
+            m2.metric("Índice de Circularidad", f"{circ:.1f}%")
+            m3.metric("CO₂e Evitado", f"{co2:.1f} kg")
+            m4.metric("Minerales Salvados", f"{mat:.1f} kg")
+            
+            st.markdown("<div style='height: 20px;'></div>", unsafe_allow_html=True)
+            g1, g2 = st.columns(2)
+            with g1:
+                fig_pie = px.pie(
+                    names=['Reparación', 'Desarme', 'Reciclaje'],
+                    values=[rep, des, rec],
+                    title="Destino de los Equipos en Taller",
+                    color_discrete_sequence=['#00D68F', '#00B4D8', '#FFB703'],
+                    hole=0.45
+                )
+                fig_pie.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#FFFFFF")
+                st.plotly_chart(fig_pie, use_container_width=True)
+            with g2:
+                fig_bar = px.bar(
+                    x=['Materia Prima (kg)', 'CO₂ Mitigado (kg)'],
+                    y=[mat, co2],
+                    title="Balance Ambiental Acumulado",
+                    color_discrete_sequence=['#00D68F'],
+                    text_auto=True
+                )
+                fig_bar.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#FFFFFF")
+                st.plotly_chart(fig_bar, use_container_width=True)
+                
+            st.dataframe(df[['created_at', 'tipo_dispositivo', 'marca_modelo', 'destino_triage']], use_container_width=True)
+        else:
+            st.info("No se registran donaciones validadas físicamente para este código aún.")
+
+# ------------------------------------------------------------------------------
+# TAB 3: ADMINISTRACIÓN Y EMISIÓN DE PUNTOS QR
+# ------------------------------------------------------------------------------
+with tab3:
+    st.markdown("""
+    <div class='rede-card'>
+        <h3 style='color: #FFB703; margin-top: 0;'>⚙️ Panel de Control de Red de Acopio</h3>
+        <p style='color: #94A3B8; font-size: 0.95rem;'>Habilitación de nuevos negocios asociados y generación automática de señalética QR.</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    pass_admin = st.text_input("Clave Maestra de Administración", type="password")
+    if pass_admin == "admin123":
+        c_pt1, c_pt2 = st.columns(2)
+        with c_pt1:
+            n_nombre = st.text_input("Nombre del Local Comercial / Almacén", placeholder="Ej: Almacén Don Tito")
+            n_dir = st.text_input("Dirección Completa", placeholder="Ej: Av. Cardenal Samoré 1450, Curauma")
+        with c_pt2:
+            n_lat = st.number_input("Latitud GPS", format="%.6f", value=-33.125000)
+            n_lon = st.number_input("Longitud GPS", format="%.6f", value=-71.550000)
+            
+        url_base = st.text_input("URL Pública de la Aplicación", value="https://club-rede.streamlit.app/")
+        
+        if st.button("📦 Guardar Punto y Generar Señalética QR"):
+            nuevo_id = str(random.randint(100, 999))
+            if supabase:
+                supabase.table("puntos_reciclaje").insert({
+                    "id": nuevo_id, "nombre_negocio": n_nombre,
+                    "direccion": n_dir, "latitud": n_lat, "longitud": n_lon
+                }).execute()
+                
+            url_qr = f"{url_base.strip()}?punto_id={nuevo_id}"
+            qr = qrcode.QRCode(version=1, box_size=10, border=3)
+            qr.add_data(url_qr)
+            qr.make(fit=True)
+            img_qr = qr.make_image(fill_color="#0A0F1D", back_color="#00D68F")
+            
+            buf = BytesIO()
+            img_qr.save(buf, format="PNG")
+            
+            st.success(f"Punto #{nuevo_id} dado de alta con éxito.")
+            st.image(buf.getvalue(), caption=f"Código QR oficial para {n_nombre}", width=260)
+            st.download_button("⬇️ Descargar Señalética QR (PNG)", buf.getvalue(), file_name=f"QR_{nuevo_id}.png", mime="image/png")

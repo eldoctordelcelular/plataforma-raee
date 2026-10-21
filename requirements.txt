@@ -8,3 +8,5 @@ requests
 Pillow
 plotly
 fpdf
+qrcode
+streamlit-geolocation
