@@ -395,23 +395,29 @@ with tab1:
     lon_usuario = ubicacion.get('longitude')
     
     if lat_usuario and lon_usuario and supabase:
-        res_puntos = supabase.table("puntos_reciclaje").select("*").execute()
-        if res_puntos.data:
-            distancia_minima = float('inf')
-            punto_cercano = None
-            for p in res_puntos.data:
-                d = calcular_distancia(lat_usuario, lon_usuario, p['latitud'], p['longitud'])
-                if d < distancia_minima:
-                    distancia_minima = d
-                    punto_cercano = p
-            if punto_cercano:
-                st.markdown(f"""
-                <div style='background: rgba(0, 214, 143, 0.1); border-left: 4px solid #00D68F; padding: 16px; border-radius: 8px; margin-bottom: 20px;'>
-                    <strong style='color: #00D68F; font-size: 1.1rem;'>🏪 Punto sugerido: {punto_cercano['nombre_negocio']}</strong><br>
-                    <span style='color: #E2E8F0;'>📍 Dirección: {punto_cercano['direccion']}</span><br>
-                    <span style='color: #94A3B8;'>Distancia estimada: {distancia_minima:.1f} km</span>
-                </div>
-                """, unsafe_allow_html=True)
+        try:
+            res_puntos = supabase.table("puntos_reciclaje").select("*").execute()
+            if res_puntos.data:
+                distancia_minima = float('inf')
+                punto_cercano = None
+                for p in res_puntos.data:
+                    try:
+                        d = calcular_distancia(lat_usuario, lon_usuario, float(p['latitud']), float(p['longitud']))
+                        if d < distancia_minima:
+                            distancia_minima = d
+                            punto_cercano = p
+                    except Exception:
+                        continue
+                if punto_cercano:
+                    st.markdown(f"""
+                    <div style='background: rgba(0, 214, 143, 0.1); border-left: 4px solid #00D68F; padding: 16px; border-radius: 8px; margin-bottom: 20px;'>
+                        <strong style='color: #00D68F; font-size: 1.1rem;'>🏪 Punto sugerido: {punto_cercano.get('nombre_negocio', '')}</strong><br>
+                        <span style='color: #E2E8F0;'>📍 Dirección: {punto_cercano.get('direccion', '')}</span><br>
+                        <span style='color: #94A3B8;'>Distancia estimada: {distancia_minima:.1f} km</span>
+                    </div>
+                    """, unsafe_allow_html=True)
+        except Exception as e_puntos:
+            st.caption(f"No fue posible cargar los puntos de acopio en este momento: {e_puntos}")
 
     st.markdown("""
     <div class='rede-card'>
