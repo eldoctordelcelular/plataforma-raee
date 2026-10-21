@@ -409,11 +409,18 @@ with tab1:
                     except Exception:
                         continue
                 if punto_cercano:
+                    foto_local = punto_cercano.get('foto_url') or "https://tb-static.uber.com/prod/image-proc/processed_images/23f9535d70a993de06e57e8ca3ba3d2c/a19bb09692310dfd41e49a96c424b3a6.jpeg"
                     st.markdown(f"""
-                    <div style='background: rgba(0, 214, 143, 0.1); border-left: 4px solid #00D68F; padding: 16px; border-radius: 8px; margin-bottom: 20px;'>
-                        <strong style='color: #00D68F; font-size: 1.1rem;'>🏪 Punto sugerido: {punto_cercano.get('nombre_negocio', '')}</strong><br>
-                        <span style='color: #E2E8F0;'>📍 Dirección: {punto_cercano.get('direccion', '')}</span><br>
-                        <span style='color: #94A3B8;'>Distancia estimada: {distancia_minima:.1f} km</span>
+                    <div style='background: rgba(18, 30, 56, 0.85); border: 1px solid rgba(0, 214, 143, 0.35); border-radius: 14px; padding: 18px; margin-bottom: 22px; display: flex; flex-wrap: wrap; gap: 16px; align-items: center;'>
+                        <img src='{foto_local}' style='width: 140px; height: 110px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(0, 214, 143, 0.4);' alt='Local'>
+                        <div style='flex: 1; min-width: 200px;'>
+                            <div style='color: #00D68F; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;'>Punto de Acopio Afiliado</div>
+                            <h3 style='margin: 4px 0; color: #FFFFFF; font-size: 1.35rem;'>🍕 {punto_cercano.get('nombre_negocio', '')}</h3>
+                            <p style='margin: 2px 0; color: #94A3B8; font-size: 0.95rem;'>📍 {punto_cercano.get('direccion', '')}</p>
+                            <span style='display: inline-block; background: rgba(0, 214, 143, 0.15); color: #00D68F; font-size: 0.85rem; padding: 4px 10px; border-radius: 6px; font-weight: 600; margin-top: 6px;'>
+                                Distancia: {distancia_minima:.1f} km de tu ubicación
+                            </span>
+                        </div>
                     </div>
                     """, unsafe_allow_html=True)
         except Exception as e_puntos:
@@ -629,13 +636,13 @@ with tab3:
         st.markdown("### 🏪 Crear Nuevo Punto de Acopio")
         c_pt1, c_pt2 = st.columns(2)
         with c_pt1:
-            n_nombre = st.text_input("Nombre del Local Comercial / Almacén", placeholder="Ej: Almacén Don Tito")
-            n_dir = st.text_input("Dirección Completa", placeholder="Ej: Av. Cardenal Samoré 1450, Curauma")
+            n_nombre = st.text_input("Nombre del Local Comercial / Almacén", value="Pizzería Ciudad de Pie")
+            n_dir = st.text_input("Dirección Completa", value="Plazuela Ecuador 623, Valparaíso")
+            n_foto = st.text_input("URL de Fotografía del Local (Google / Web)", value="https://tb-static.uber.com/prod/image-proc/processed_images/23f9535d70a993de06e57e8ca3ba3d2c/a19bb09692310dfd41e49a96c424b3a6.jpeg")
         with c_pt2:
-            n_lat = st.number_input("Latitud GPS", format="%.6f", value=-33.125000)
-            n_lon = st.number_input("Longitud GPS", format="%.6f", value=-71.550000)
-            
-        url_base = st.text_input("URL Pública de la Aplicación", value="https://club-rede.streamlit.app/")
+            n_lat = st.number_input("Latitud GPS", format="%.6f", value=-33.045754)
+            n_lon = st.number_input("Longitud GPS", format="%.6f", value=-71.626331)
+            url_base = st.text_input("URL Pública de la Aplicación", value="https://club-rede.streamlit.app/")
         
         if st.button("📦 Guardar Punto y Generar Señalética QR"):
             if not n_nombre.strip() or not n_dir.strip():
@@ -645,8 +652,12 @@ with tab3:
                 if supabase:
                     try:
                         supabase.table("puntos_reciclaje").insert({
-                            "id": nuevo_id, "nombre_negocio": n_nombre.strip(),
-                            "direccion": n_dir.strip(), "latitud": n_lat, "longitud": n_lon
+                            "id": nuevo_id, 
+                            "nombre_negocio": n_nombre.strip(),
+                            "direccion": n_dir.strip(), 
+                            "latitud": n_lat, 
+                            "longitud": n_lon,
+                            "foto_url": n_foto.strip()
                         }).execute()
                     except Exception as e_ins:
                         st.error(f"Error al guardar en base de datos: {e_ins}")
