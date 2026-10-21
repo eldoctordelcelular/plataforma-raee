@@ -668,7 +668,7 @@ with tab3:
         with c_pt2:
             n_lat = st.number_input("Latitud GPS", format="%.6f", value=-33.045754)
             n_lon = st.number_input("Longitud GPS", format="%.6f", value=-71.626331)
-            url_base = st.text_input("URL Pública de la Aplicación", value="https://club-rede.streamlit.app/")
+            url_base = st.text_input("URL Pública de la Aplicación", value="https://plataforma-raee.streamlit.app/")
         
         if st.button("📦 Guardar Punto y Generar Señalética QR"):
             if not n_nombre.strip() or not n_dir.strip():
