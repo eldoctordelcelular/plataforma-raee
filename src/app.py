@@ -716,8 +716,13 @@ with tab2:
                 )
                 fig_bar.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", font_color="#FFFFFF")
                 st.plotly_chart(fig_bar, use_container_width=True)
-                
-            st.dataframe(df[['created_at', 'tipo_dispositivo', 'marca_modelo', 'destino_triage']], use_container_width=True)
+            # Filtrar de forma segura solo las columnas presentes en el DataFrame
+            cols_deseadas = ['created_at', 'tipo_dispositivo', 'marca_modelo', 'destino_triage', 'origen_donacion']
+            cols_disponibles = [col for col in cols_deseadas if col in df.columns]
+            if cols_disponibles:
+                st.dataframe(df[cols_disponibles], use_container_width=True)
+            else:
+                st.dataframe(df, use_container_width=True)
         else:
             st.info("No se registran donaciones validadas físicamente para este código aún.")
 
