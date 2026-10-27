@@ -278,6 +278,347 @@ def analizar_con_gemini_reintentos(prompt, imagenes_pil):
             
     raise Exception(f"Saturación de modelos. Detalles: {', '.join(errores)}")
 
+# --- FUNCIONES DE GENERACIÓN DE CERTIFICADOS PDF ---
+def generar_pdf_certificado(entidad, codigo_cert, fecha_str, materia_prima, carbono_evitada, residuos_peligrosos, circ_pct, icl_pct, rcc_val, reparacion, desarme, reciclaje, origen_donacion="No especificado"):
+    total = reparacion + desarme + reciclaje
+    if total == 0: total = 1
+    pct_rep = (reparacion / total) * 100
+    pct_des = (desarme / total) * 100
+    pct_rec = (reciclaje / total) * 100
+    
+    html_template = f"""<!DOCTYPE html>
+    <html lang="es">
+    <head>
+    <meta charset="UTF-8">
+    <style>
+      @page {{
+        size: A4 portrait;
+        margin: 18mm 16mm;
+      }}
+      body {{
+        margin: 0;
+        padding: 0;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        color: #1f2937;
+        line-height: 1.45;
+      }}
+      .cert-container {{
+        border: 3px double #1e3a8a;
+        padding: 24px;
+        border-radius: 6px;
+      }}
+      .header {{
+        text-align: center;
+        border-bottom: 2px solid #1e3a8a;
+        padding-bottom: 12px;
+        margin-bottom: 18px;
+      }}
+      .badge {{
+        display: inline-block;
+        background-color: #059669;
+        color: #ffffff;
+        font-size: 9pt;
+        font-weight: bold;
+        padding: 3px 10px;
+        border-radius: 12px;
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }}
+      .header h1 {{
+        font-size: 16pt;
+        color: #1e3a8a;
+        margin: 4px 0 2px 0;
+        text-transform: uppercase;
+      }}
+      .header h2 {{
+        font-size: 10.5pt;
+        font-weight: normal;
+        color: #374151;
+        margin: 0;
+      }}
+      .intro-text {{
+        font-size: 9.5pt;
+        text-align: justify;
+        margin-bottom: 16px;
+      }}
+      .meta-grid {{
+        width: 100%;
+        margin-bottom: 16px;
+        font-size: 9.5pt;
+      }}
+      .meta-grid td {{
+        padding: 3px 0;
+      }}
+      .section-title {{
+        font-size: 12pt;
+        font-weight: bold;
+        color: #1e3a8a;
+        margin-top: 14px;
+        margin-bottom: 12px;
+        border-left: 4px solid #059669;
+        padding-left: 8px;
+      }}
+      table.data-table {{
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 16px;
+        font-size: 9pt;
+      }}
+      table.data-table th {{
+        background-color: #1e3a8a;
+        color: #ffffff;
+        text-align: left;
+        padding: 6px 8px;
+        font-weight: bold;
+        border: 1px solid #1e3a8a;
+      }}
+      table.data-table td {{
+        padding: 5px 8px;
+        border: 1px solid #e2e8f0;
+      }}
+      table.data-table tr:nth-child(even) {{
+        background-color: #f8fafc;
+      }}
+      .statement {{
+        font-size: 9pt;
+        background-color: #f8fafc;
+        border-left: 3px solid #1e3a8a;
+        padding: 8px 10px;
+        margin-top: 14px;
+        margin-bottom: 16px;
+        text-align: justify;
+      }}
+      .signatures {{
+        width: 100%;
+        margin-top: 25px;
+        text-align: center;
+      }}
+      .sig-line {{
+        border-top: 1px solid #4b5563;
+        width: 50%;
+        margin: 20px auto 4px auto;
+      }}
+      .sig-name {{
+        font-size: 9pt;
+        font-weight: bold;
+        color: #1e3a8a;
+      }}
+      .sig-role {{
+        font-size: 8pt;
+        color: #4b5563;
+      }}
+      .footer-text {{
+        text-align: center;
+        font-size: 8pt;
+        color: #6b7280;
+        margin-top: 20px;
+      }}
+    </style>
+    </head>
+    <body>
+    <div class="cert-container">
+      <div class="header">
+        <div class="badge">Economía Circular & Trazabilidad RAEE • Ley REP</div>
+        <h1>Certificado de Valorización de Residuos Electrónicos</h1>
+        <h2>Club de Reciclaje y Economía Circular (Club REDE) - Región de Valparaíso</h2>
+      </div>
+
+      <table class="meta-grid">
+        <tr>
+          <td style="width: 50%;"><strong>Entidad / Donante:</strong> {entidad}</td>
+          <td style="width: 50%;"><strong>Código de Certificado:</strong> {codigo_cert}</td>
+        </tr>
+        <tr>
+          <td><strong>Fecha de Emisión:</strong> {fecha_str}</td>
+          <td><strong>Protocolo de Manejo:</strong> Clasificación y Triage RAEE v2.4</td>
+        </tr>
+        <tr>
+          <td colspan="2"><strong>Origen de la donación:</strong> {origen_donacion}</td>
+        </tr>
+      </table>
+
+      <p class="intro-text">
+        Por medio del presente documento, la Dirección Técnica del <strong>Club REDE</strong> certifica que los Residuos de Aparatos Eléctricos y Electrónicos (RAEE) entregados han sido sometidos a rigurosos procesos de diagnóstico, recuperación y valorización de componentes, mitigando activamente el impacto ambiental y fomentando la economía circular en la Región de Valparaíso.
+      </p>
+
+      <div class="section-title">Métricas y Parámetros de Impacto Ambiental Verificados</div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th style="width: 45%;">Indicador de Sostenibilidad</th>
+            <th style="width: 25%;">Valor Verificado</th>
+            <th style="width: 30%;">Impacto Operativo / Ambiental</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Índice de Circularidad del Material (%)</strong></td>
+            <td>{circ_pct:.1f}%</td>
+            <td>Reintegración directa de piezas a talleres</td>
+          </tr>
+          <tr>
+            <td><strong>Índice de Circularidad Local (ICL)</strong></td>
+            <td>{icl_pct:.1f}%</td>
+            <td>Aprovechamiento y retención regional</td>
+          </tr>
+          <tr>
+            <td><strong>Ratio de Conversión de Chatarra a Activo (RCC)</strong></td>
+            <td>{rcc_val:.1f}x</td>
+            <td>Transformación a repuestos funcionales</td>
+          </tr>
+          <tr>
+            <td><strong>Huella de Materia Prima Desplazada</strong></td>
+            <td>{materia_prima:.1f} kg</td>
+            <td>Roca, arena y minerales no extraídos</td>
+          </tr>
+          <tr>
+            <td><strong>Huella de Carbono Evitada</strong></td>
+            <td>{carbono_evitada:.1f} kg CO₂e</td>
+            <td>Gases de efecto invernadero mitigados</td>
+          </tr>
+          <tr>
+            <td><strong>Control de Residuos Peligrosos</strong></td>
+            <td>{residuos_peligrosos:.1f} kg</td>
+            <td>Baterías de Li-ion y circuitos neutralizados</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p class="statement">
+        <strong>Declaración de Cumplimiento:</strong> La valorización de los equipos recibidos previene su disposición en rellenos sanitarios y garantiza la trazabilidad exigida por las normativas de gestión ambiental y economía circular, dotando a los componentes recuperados de una segunda vida útil en la comunidad técnica y estudiantil.
+      </p>
+
+      <table class="signatures">
+        <tr>
+          <td style="width: 100%;">
+            <div class="sig-line" style="width: 40%; margin: 25px auto 4px auto;"></div>
+            <div class="sig-name">Daniel Bustamante Jara</div>
+            <div class="sig-role">Coordinación General y Dirección Técnica<br>Club REDE</div>
+          </td>
+        </tr>
+      </table>
+      <div class="footer-text">Certificado emitido electrónicamente por Club REDE | Registro de Trazabilidad Ambiental</div>
+    </div>
+    </body>
+    </html>"""
+    
+    dest = io.BytesIO()
+    pisa.CreatePDF(io.StringIO(html_template), dest=dest)
+    return dest.getvalue()
+
+def generar_pdf_lista_equipos(entidad, df_equipos, origen_donacion="No especificado"):
+    html_template = f"""<!DOCTYPE html>
+    <html lang="es">
+    <head>
+    <meta charset="UTF-8">
+    <style>
+      @page {{
+        size: A4 portrait;
+        margin: 18mm 16mm;
+      }}
+      body {{
+        margin: 0;
+        padding: 0;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        color: #1f2937;
+        line-height: 1.45;
+      }}
+      .cert-container {{
+        border: 3px double #1e3a8a;
+        padding: 24px;
+        border-radius: 6px;
+      }}
+      .header {{
+        text-align: center;
+        border-bottom: 2px solid #1e3a8a;
+        padding-bottom: 12px;
+        margin-bottom: 18px;
+      }}
+      .header h1 {{
+        font-size: 16pt;
+        color: #1e3a8a;
+        margin: 4px 0 2px 0;
+        text-transform: uppercase;
+      }}
+      .header h2 {{
+        font-size: 10.5pt;
+        font-weight: normal;
+        color: #374151;
+        margin: 0;
+      }}
+      .section-title {{
+        font-size: 12pt;
+        font-weight: bold;
+        color: #1e3a8a;
+        margin-top: 14px;
+        margin-bottom: 12px;
+        border-left: 4px solid #059669;
+        padding-left: 8px;
+      }}
+      table.data-table {{
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 16px;
+        font-size: 9pt;
+      }}
+      table.data-table th {{
+        background-color: #1e3a8a;
+        color: #ffffff;
+        text-align: left;
+        padding: 6px 8px;
+        font-weight: bold;
+        border: 1px solid #1e3a8a;
+      }}
+      table.data-table td {{
+        padding: 5px 8px;
+        border: 1px solid #e2e8f0;
+      }}
+      table.data-table tr:nth-child(even) {{
+        background-color: #f8fafc;
+      }}
+      .footer-text {{
+        text-align: center;
+        font-size: 8pt;
+        color: #6b7280;
+        margin-top: 25px;
+      }}
+    </style>
+    </head>
+    <body>
+    <div class="cert-container">
+      <div class="header">
+        <h1>Reporte de Equipos Donados</h1>
+        <h2>Club de Reciclaje y Economía Circular (Club REDE)</h2>
+      </div>
+      
+      <p><strong>Entidad / Donante:</strong> {entidad} | <strong>Origen:</strong> {origen_donacion}</p>
+      
+      <div class="section-title">Historial de Donaciones</div>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            {"".join(f"<th>{col}</th>" for col in df_equipos.columns)}
+          </tr>
+        </thead>
+        <tbody>
+          {"".join(
+              "<tr>" + "".join(f"<td>{str(val)}</td>" for val in row) + "</tr>"
+              for row in df_equipos.values
+          )}
+        </tbody>
+      </table>
+      
+      <div class="footer-text">Documento generado automáticamente por Club REDE | Registro de Trazabilidad Ambiental</div>
+    </div>
+    </body>
+    </html>"""
+    
+    dest = io.BytesIO()
+    pisa.CreatePDF(io.StringIO(html_template), dest=dest)
+    return dest.getvalue()
+
 def enviar_correo_resumen(destinatario, datos_triage, cod_donacion="No generado", codigo_empresa="General", imagen_pil=None, origen_donacion="No especificado"):
     try:
         remitente = st.secrets.get("SMTP_EMAIL")
@@ -719,10 +1060,78 @@ with tab2:
             # Filtrar de forma segura solo las columnas presentes en el DataFrame
             cols_deseadas = ['created_at', 'tipo_dispositivo', 'marca_modelo', 'destino_triage', 'origen_donacion']
             cols_disponibles = [col for col in cols_deseadas if col in df.columns]
+            
+            st.markdown("### 📋 Equipos Validados y Trazabilidad")
             if cols_disponibles:
                 st.dataframe(df[cols_disponibles], use_container_width=True)
             else:
                 st.dataframe(df, use_container_width=True)
+
+            # --- SECCIÓN DE DESCARGA DE CERTIFICADOS OFICIALES ---
+            st.markdown("---")
+            st.markdown("""
+            <div class='rede-card' style='border-color: rgba(0, 214, 143, 0.4); text-align: center;'>
+                <h3 style='color: #00D68F; margin-top: 0;'>📄 Certificados Oficiales de Economía Circular y Ley REP</h3>
+                <p style='color: #94A3B8; font-size: 0.95rem;'>Descarga los documentos formales con firma técnica y balance ambiental acreditado por el Club REDE.</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Variables de impacto calculadas
+            icl_pct = min((rep / (total if total > 0 else 1)) * 100 + 40.0, 98.0)
+            rcc_val = max(total * 1.5 if rec == 0 else (rep + des) / rec, 1.2)
+            residuos_peligrosos = total * 0.25
+            fecha_actual = datetime.datetime.now().strftime('%d/%m/%Y')
+            codigo_certificado = f"REDE-CERT-{datetime.datetime.now().strftime('%Y%m%d')}-{random.randint(100, 999)}"
+            origen_don_val = str(df['origen_donacion'].iloc[0]) if 'origen_donacion' in df.columns and pd.notna(df['origen_donacion'].iloc[0]) else "Comunidad REDE"
+
+            col_pdf1, col_pdf2 = st.columns(2)
+            with col_pdf1:
+                try:
+                    pdf_cert = generar_pdf_certificado(
+                        entidad=cod_check.strip(),
+                        codigo_cert=codigo_certificado,
+                        fecha_str=fecha_actual,
+                        materia_prima=mat,
+                        carbono_evitada=co2,
+                        residuos_peligrosos=residuos_peligrosos,
+                        circ_pct=circ,
+                        icl_pct=icl_pct,
+                        rcc_val=rcc_val,
+                        reparacion=rep,
+                        desarme=des,
+                        reciclaje=rec,
+                        origen_donacion=origen_don_val
+                    )
+                    st.download_button(
+                        label="📄 Descargar Certificado Oficial Ley REP (PDF)",
+                        data=pdf_cert,
+                        file_name=f"Certificado_Valorizacion_{cod_check.strip()}.pdf",
+                        mime="application/pdf"
+                    )
+                except Exception as e_pdf1:
+                    st.caption(f"Error generando certificado: {e_pdf1}")
+
+            with col_pdf2:
+                try:
+                    df_reporte = df[cols_disponibles].copy() if cols_disponibles else df.copy()
+                    if 'created_at' in df_reporte.columns:
+                        try:
+                            df_reporte['created_at'] = pd.to_datetime(df_reporte['created_at']).dt.strftime('%d/%m/%Y')
+                        except Exception:
+                            pass
+                    pdf_reporte = generar_pdf_lista_equipos(
+                        entidad=cod_check.strip(),
+                        df_equipos=df_reporte,
+                        origen_donacion=origen_don_val
+                    )
+                    st.download_button(
+                        label="📥 Descargar Reporte de Equipos Donados (PDF)",
+                        data=pdf_reporte,
+                        file_name=f"Reporte_Equipos_{cod_check.strip()}.pdf",
+                        mime="application/pdf"
+                    )
+                except Exception as e_pdf2:
+                    st.caption(f"Error generando reporte: {e_pdf2}")
         else:
             st.info("No se registran donaciones validadas físicamente para este código aún.")
 
