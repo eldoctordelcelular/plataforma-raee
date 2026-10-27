@@ -846,7 +846,10 @@ with tab1:
     st.markdown("""
     <div class='rede-card'>
         <h3 style='color: #00D68F; margin-top: 0;'>📷 2. Diagnóstico Visual con Inteligencia Artificial</h3>
-        <p style='color: #94A3B8; font-size: 0.95rem;'>Toma fotografías claras de las placas o del dispositivo para evaluar su potencial de minería urbana.</p>
+        <p style='color: #94A3B8; font-size: 0.95rem; margin-bottom: 6px;'>Toma fotografías claras de las placas o del dispositivo para evaluar su potencial de minería urbana y reciclaje.</p>
+        <div style='background: rgba(0, 214, 143, 0.08); border-left: 3px solid #00D68F; padding: 8px 12px; border-radius: 6px; font-size: 0.85rem; color: #E2E8F0;'>
+            💡 <strong>Criterio de Clasificación:</strong> Solo los teléfonos que estén <strong>completamente enteros y con la pantalla sana</strong> serán considerados para <strong>donación social</strong>. Todos los demás se destinarán a <strong>repuestos de taller o minería urbana (recuperación de metales)</strong>.
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -895,13 +898,20 @@ with tab1:
                 if f"img_t_{rk}" in st.session_state: imgs.append(st.session_state[f"img_t_{rk}"])
                 
                 prompt = """
-                Analiza el residuo electrónico y responde en estricto formato JSON:
+                Eres un experto en hardware, triage técnico y minería urbana para el Club REDE.
+                Analiza detenidamente las fotografías del residuo o dispositivo electrónico y responde ESTRICTAMENTE en formato JSON válido:
                 {
-                  "tipo_dispositivo": "string",
-                  "marca_modelo": "string",
-                  "estado_visual": "string",
-                  "destino_triage": "string (Reparación para Donación, Desarme de Repuestos, o Reciclaje de Metales)"
+                  "tipo_dispositivo": "string (ej. Smartphone, Celular, Tablet, Notebook, Router, etc.)",
+                  "marca_modelo": "string (ej. Samsung Galaxy A10, Xiaomi Redmi Note, No identificado)",
+                  "estado_visual": "string (descripción detallada: estado de pantalla, vidrio, carcasa, si se ve entero o desarmado)",
+                  "destino_triage": "string (DEBE SER exactamente una de las siguientes opciones: 'Reparación para Donación', 'Desarme de Repuestos', o 'Reciclaje de Metales')"
                 }
+
+                REGLA TÉCNICA OBLIGATORIA PARA TELÉFONOS / SMARTPHONES:
+                1. 'Reparación para Donación' (posible donación): ÚNICAMENTE Y EXCLUSIVAMENTE para teléfonos que se vean completamente ENTEROS, con su estructura completa y con la PANTALLA TOTALMENTE ENTERA (sin trizaduras, sin vidrios quebrados, sin roturas visibles).
+                2. 'Desarme de Repuestos': Teléfonos con pantalla quebrada, trizada o dañada, pero cuya placa o piezas internas puedan ser rescatadas como repuestos.
+                3. 'Reciclaje de Metales': Teléfonos desarmados, sulfatados, partidos o cualquier otro desecho tecnológico que deba ir directo a recuperación de metales y minería urbana.
+                Para otros dispositivos que no sean teléfonos, evalúa según si están enteros y operativos (Donación), dañados reparables/piezas (Repuestos) o chatarra electrónica (Reciclaje de Metales).
                 """
                 try:
                     resp = analizar_con_gemini_reintentos(prompt, imgs)
