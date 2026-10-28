@@ -857,154 +857,314 @@ with tab1:
         st.session_state.registro_key = 0
     rk = st.session_state.registro_key
 
-    c_cam1, c_cam2 = st.columns(2)
-    with c_cam1:
-        st.markdown("<h5 style='color: #00B4D8;'>Vista Frontal</h5>", unsafe_allow_html=True)
-        if st.checkbox("Encender Cámara Frontal", key=f"chk_f_{rk}"):
-            f_front = st.camera_input("Capturar", key=f"cam_f_{rk}")
-            if f_front:
-                st.session_state[f"img_f_{rk}"] = optimizar_imagen(f_front)
-            if f"img_f_{rk}" in st.session_state:
-                st.image(st.session_state[f"img_f_{rk}"], width=220, caption="Frontal OK")
+    # Selector de modo de ingreso: Individual (cámara) o Masivo (subir varias fotos)
+    modo_ingreso = st.radio(
+        "Selecciona el modo de registro:",
+        ["📸 Modo Individual (Cámara Frontal y Trasera)", "📦 Modo Masivo / Lote (Subir múltiples fotos de celulares)"],
+        index=0,
+        horizontal=True
+    )
 
-    with c_cam2:
-        st.markdown("<h5 style='color: #00B4D8;'>Vista Trasera / Placa</h5>", unsafe_allow_html=True)
-        if st.checkbox("Encender Cámara Trasera", key=f"chk_t_{rk}"):
-            f_back = st.camera_input("Capturar", key=f"cam_t_{rk}")
-            if f_back:
-                st.session_state[f"img_t_{rk}"] = optimizar_imagen(f_back)
-            if f"img_t_{rk}" in st.session_state:
-                st.image(st.session_state[f"img_t_{rk}"], width=220, caption="Trasera OK")
+    prompt_triage = """
+    Eres un experto en hardware, triage técnico y minería urbana para el Club REDE.
+    Analiza detenidamente la(s) fotografía(s) del residuo o dispositivo electrónico y responde ESTRICTAMENTE en formato JSON válido:
+    {
+      "tipo_dispositivo": "string (ej. Smartphone, Celular, Tablet, Notebook, Router, etc.)",
+      "marca_modelo": "string (ej. Samsung Galaxy A10, Xiaomi Redmi Note, No identificado)",
+      "estado_visual": "string (descripción detallada: estado de pantalla, vidrio, carcasa, si se ve entero o desarmado)",
+      "destino_triage": "string (DEBE SER exactamente una de las siguientes opciones: 'Reparación para Donación', 'Desarme de Repuestos', o 'Reciclaje de Metales')"
+    }
 
-    st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
-    c_in1, c_in2 = st.columns(2)
-    with c_in1:
-        codigo_empresa = st.text_input("Código de Entidad / Empresa", placeholder="Ej: INACAP, COLEGIO-ALBORADA", key=f"cod_{rk}")
-        origen_donacion = st.text_input("Nombre del Donante / Institución", placeholder="Ej: Daniel Bustamante", key=f"org_{rk}")
-    with c_in2:
-        observaciones = st.text_input("Observación del Equipo", placeholder="Ej: Router dañado, no enciende", key=f"obs_{rk}")
-        correo_usuario = st.text_input("Correo para Recibir Constancia", placeholder="ejemplo@correo.cl", key=f"mail_{rk}")
+    REGLA TÉCNICA OBLIGATORIA PARA TELÉFONOS / SMARTPHONES:
+    1. 'Reparación para Donación' (posible donación): ÚNICAMENTE Y EXCLUSIVAMENTE para teléfonos que se vean completamente ENTEROS, con su estructura completa y con la PANTALLA TOTALMENTE ENTERA (sin trizaduras, sin vidrios quebrados, sin roturas visibles).
+    2. 'Desarme de Repuestos': Teléfonos con pantalla quebrada, trizada o dañada, pero cuya placa o piezas internas puedan ser rescatadas como repuestos.
+    3. 'Reciclaje de Metales': Teléfonos desarmados, sulfatados, partidos o cualquier otro desecho tecnológico que deba ir directo a recuperación de metales y minería urbana.
+    Para otros dispositivos que no sean teléfonos, evalúa según si están enteros y operativos (Donación), dañados reparables/piezas (Repuestos) o chatarra electrónica (Reciclaje de Metales).
+    """
 
-    if st.button("🚀 Analizar Dispositivo y Generar Pre-Registro"):
-        tiene_foto = f"img_f_{rk}" in st.session_state or f"img_t_{rk}" in st.session_state
-        if not tiene_foto:
-            st.warning("⚠️ Debes capturar al menos una fotografía del aparato.")
-        elif not codigo_empresa.strip():
-            st.warning("⚠️ El código de entidad es obligatorio para asignar las métricas.")
-        else:
-            with st.spinner("⚡ Procesando con redes convolucionales y catalogando componentes..."):
-                imgs = []
-                if f"img_f_{rk}" in st.session_state: imgs.append(st.session_state[f"img_f_{rk}"])
-                if f"img_t_{rk}" in st.session_state: imgs.append(st.session_state[f"img_t_{rk}"])
+    if modo_ingreso == "📸 Modo Individual (Cámara Frontal y Trasera)":
+        c_cam1, c_cam2 = st.columns(2)
+        with c_cam1:
+            st.markdown("<h5 style='color: #00B4D8;'>Vista Frontal</h5>", unsafe_allow_html=True)
+            if st.checkbox("Encender Cámara Frontal", key=f"chk_f_{rk}"):
+                f_front = st.camera_input("Capturar", key=f"cam_f_{rk}")
+                if f_front:
+                    st.session_state[f"img_f_{rk}"] = optimizar_imagen(f_front)
+                if f"img_f_{rk}" in st.session_state:
+                    st.image(st.session_state[f"img_f_{rk}"], width=220, caption="Frontal OK")
+
+        with c_cam2:
+            st.markdown("<h5 style='color: #00B4D8;'>Vista Trasera / Placa</h5>", unsafe_allow_html=True)
+            if st.checkbox("Encender Cámara Trasera", key=f"chk_t_{rk}"):
+                f_back = st.camera_input("Capturar", key=f"cam_t_{rk}")
+                if f_back:
+                    st.session_state[f"img_t_{rk}"] = optimizar_imagen(f_back)
+                if f"img_t_{rk}" in st.session_state:
+                    st.image(st.session_state[f"img_t_{rk}"], width=220, caption="Trasera OK")
+
+        st.markdown("<div style='height: 15px;'></div>", unsafe_allow_html=True)
+        c_in1, c_in2 = st.columns(2)
+        with c_in1:
+            codigo_empresa = st.text_input("Código de Entidad / Empresa", placeholder="Ej: INACAP, COLEGIO-ALBORADA", key=f"cod_{rk}")
+            origen_donacion = st.text_input("Nombre del Donante / Institución", placeholder="Ej: Daniel Bustamante", key=f"org_{rk}")
+        with c_in2:
+            observaciones = st.text_input("Observación del Equipo", placeholder="Ej: Router dañado, no enciende", key=f"obs_{rk}")
+            correo_usuario = st.text_input("Correo para Recibir Constancia", placeholder="ejemplo@correo.cl", key=f"mail_{rk}")
+
+        if st.button("🚀 Analizar Dispositivo y Generar Pre-Registro"):
+            tiene_foto = f"img_f_{rk}" in st.session_state or f"img_t_{rk}" in st.session_state
+            if not tiene_foto:
+                st.warning("⚠️ Debes capturar al menos una fotografía del aparato.")
+            elif not codigo_empresa.strip():
+                st.warning("⚠️ El código de entidad es obligatorio para asignar las métricas.")
+            else:
+                with st.spinner("⚡ Procesando con redes neuronales y catalogando componentes..."):
+                    imgs = []
+                    if f"img_f_{rk}" in st.session_state: imgs.append(st.session_state[f"img_f_{rk}"])
+                    if f"img_t_{rk}" in st.session_state: imgs.append(st.session_state[f"img_t_{rk}"])
+                    
+                    try:
+                        resp = analizar_con_gemini_reintentos(prompt_triage, imgs)
+                        resp = resp.replace("```json", "").replace("```", "").strip()
+                        datos = json.loads(resp)
+                        
+                        cod_donacion = f"REDE-{random.randint(10000, 99999)}"
+                        
+                        datos_db = {
+                            "codigo_empresa": codigo_empresa.strip(),
+                            "codigo_donacion": cod_donacion,
+                            "estado_entrega": "Pendiente",
+                            "tipo_dispositivo": datos.get("tipo_dispositivo"),
+                            "marca_modelo": datos.get("marca_modelo"),
+                            "estado_visual": datos.get("estado_visual"),
+                            "destino_triage": datos.get("destino_triage"),
+                            "observaciones_ingreso": observaciones,
+                            "origen_donacion": origen_donacion
+                        }
+                        if supabase:
+                            try:
+                                supabase.table("inventario_dispositivos").insert(datos_db).execute()
+                            except Exception as e_db:
+                                if "codigo_donacion" in str(e_db):
+                                    datos_db_compat = {
+                                        "codigo_empresa": codigo_empresa.strip(),
+                                        "tipo_dispositivo": datos.get("tipo_dispositivo"),
+                                        "marca_modelo": datos.get("marca_modelo"),
+                                        "estado_visual": datos.get("estado_visual"),
+                                        "destino_triage": datos.get("destino_triage")
+                                    }
+                                    supabase.table("inventario_dispositivos").insert(datos_db_compat).execute()
+                                else:
+                                    raise e_db
+                        
+                        st.markdown(f"""
+                        <div style='background: rgba(255, 183, 3, 0.12); border: 2px dashed #FFB703; padding: 20px; border-radius: 12px; text-align: center; margin-top: 20px; margin-bottom: 20px;'>
+                            <h2 style='color: #FFB703; margin: 0;'>Código de Entrega: {cod_donacion}</h2>
+                            <p style='color: #E2E8F0; font-size: 1rem; margin-top: 8px;'>
+                                Lleva tu aparato al punto de acopio y escanea el código QR para validar tu entrega física.
+                            </p>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                        destino_triage_val = datos.get("destino_triage", "Reciclaje de Metales")
+                        color_destino = "#00D68F" if "Reparación" in destino_triage_val else ("#00B4D8" if "Desarme" in destino_triage_val else "#FFB703")
+
+                        st.markdown(f"""
+                        <div class='rede-card' style='border-color: rgba(0, 214, 143, 0.4);'>
+                            <div style='display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;'>
+                                <h3 style='color: #00D68F; margin: 0;'>🔍 Resultado del Análisis Técnico (IA)</h3>
+                                <span style='background: rgba(0, 214, 143, 0.15); border: 1px solid {color_destino}; color: {color_destino}; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;'>
+                                    {destino_triage_val}
+                                </span>
+                            </div>
+                            <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;'>
+                                <div style='background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);'>
+                                    <span style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase;'>Dispositivo</span>
+                                    <div style='color: #FFFFFF; font-weight: 700; font-size: 1.05rem;'>{datos.get("tipo_dispositivo", "No identificado")}</div>
+                                </div>
+                                <div style='background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);'>
+                                    <span style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase;'>Marca / Modelo</span>
+                                    <div style='color: #FFFFFF; font-weight: 700; font-size: 1.05rem;'>{datos.get("marca_modelo", "No especificado")}</div>
+                                </div>
+                                <div style='background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);'>
+                                    <span style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase;'>Estado Visual</span>
+                                    <div style='color: #FFFFFF; font-weight: 600; font-size: 0.95rem;'>{datos.get("estado_visual", "Sin observaciones")}</div>
+                                </div>
+                                <div style='background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);'>
+                                    <span style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase;'>Entidad Donante</span>
+                                    <div style='color: #00D68F; font-weight: 700; font-size: 1.05rem;'>{codigo_empresa.strip()}</div>
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+                        
+                        if correo_usuario.strip():
+                            threading.Thread(
+                                target=enviar_correo_resumen, 
+                                args=(
+                                    correo_usuario.strip(), 
+                                    datos, 
+                                    cod_donacion, 
+                                    codigo_empresa.strip(), 
+                                    imgs[0] if imgs else None, 
+                                    origen_donacion
+                                )
+                            ).start()
+                            st.success(f"📧 Se ha enviado la constancia oficial a: {correo_usuario.strip()}")
+                    except Exception as e:
+                        st.error(f"Error en el proceso técnico: {e}")
+
+    else:
+        # --- MODO MASIVO / LOTE ---
+        st.markdown("""
+        <div style='background: rgba(0, 180, 216, 0.08); border-left: 3px solid #00B4D8; padding: 10px 14px; border-radius: 6px; font-size: 0.9rem; color: #E2E8F0; margin-bottom: 15px;'>
+            📂 <strong>Subida Masiva:</strong> Selecciona múltiples fotos desde tu teléfono o computador (puedes seleccionar 10, 20 o más archivos a la vez). La IA analizará cada celular, aplicará el filtro técnico (pantalla sana = donación, quebrada = repuesto, etc.) y registrará el lote completo en la plataforma.
+        </div>
+        """, unsafe_allow_html=True)
+
+        c_mb1, c_mb2 = st.columns(2)
+        with c_mb1:
+            codigo_empresa_b = st.text_input("Código de Entidad / Empresa *", placeholder="Ej: INACAP, TALLER-CENTRAL", key=f"cod_bulk_{rk}")
+            origen_donacion_b = st.text_input("Nombre del Donante / Custodio", placeholder="Ej: Daniel Bustamante", key=f"org_bulk_{rk}")
+        with c_mb2:
+            observaciones_b = st.text_input("Observación general del lote", placeholder="Ej: Lote de teléfonos recolectados en campaña", key=f"obs_bulk_{rk}")
+            correo_usuario_b = st.text_input("Correo para Recibir Constancia del Lote", placeholder="ejemplo@correo.cl", key=f"mail_bulk_{rk}")
+
+        archivos_masivos = st.file_uploader(
+            "Selecciona o arrastra las fotos de los celulares (puedes subir varias a la vez)",
+            type=["jpg", "jpeg", "png", "webp"],
+            accept_multiple_files=True,
+            key=f"uploader_bulk_{rk}"
+        )
+
+        if archivos_masivos:
+            st.info(f"📸 Total de fotos seleccionadas: **{len(archivos_masivos)}**")
+
+        if st.button("⚡ Procesar Lote Completo con Inteligencia Artificial"):
+            if not archivos_masivos:
+                st.warning("⚠️ Debes seleccionar al menos una foto para procesar.")
+            elif not codigo_empresa_b.strip():
+                st.warning("⚠️ El código de entidad es obligatorio para asignar las métricas.")
+            else:
+                progress_bar = st.progress(0)
+                status_text = st.empty()
+                lote_resultados = []
+
+                total_archivos = len(archivos_masivos)
+
+                for idx, arch in enumerate(archivos_masivos):
+                    status_text.text(f"Analizando equipo {idx + 1} de {total_archivos}: {arch.name}...")
+                    try:
+                        img_opt = optimizar_imagen(arch)
+                        resp = analizar_con_gemini_reintentos(prompt_triage, [img_opt])
+                        resp = resp.replace("```json", "").replace("```", "").strip()
+                        datos = json.loads(resp)
+
+                        cod_donacion = f"REDE-{random.randint(10000, 99999)}"
+
+                        datos_db = {
+                            "codigo_empresa": codigo_empresa_b.strip(),
+                            "codigo_donacion": cod_donacion,
+                            "estado_entrega": "Pendiente",
+                            "tipo_dispositivo": datos.get("tipo_dispositivo", "Smartphone"),
+                            "marca_modelo": datos.get("marca_modelo", "No especificado"),
+                            "estado_visual": datos.get("estado_visual", "Sin observaciones"),
+                            "destino_triage": datos.get("destino_triage", "Reciclaje de Metales"),
+                            "observaciones_ingreso": f"Lote: {observaciones_b}".strip(),
+                            "origen_donacion": origen_donacion_b
+                        }
+
+                        if supabase:
+                            try:
+                                supabase.table("inventario_dispositivos").insert(datos_db).execute()
+                            except Exception as e_db:
+                                if "codigo_donacion" in str(e_db):
+                                    datos_db_compat = {
+                                        "codigo_empresa": codigo_empresa_b.strip(),
+                                        "tipo_dispositivo": datos.get("tipo_dispositivo", "Smartphone"),
+                                        "marca_modelo": datos.get("marca_modelo", "No especificado"),
+                                        "estado_visual": datos.get("estado_visual", "Sin observaciones"),
+                                        "destino_triage": datos.get("destino_triage", "Reciclaje de Metales")
+                                    }
+                                    supabase.table("inventario_dispositivos").insert(datos_db_compat).execute()
+                                else:
+                                    print(f"Error al guardar {arch.name}: {e_db}")
+
+                        lote_resultados.append({
+                            "Archivo": arch.name,
+                            "Código Donación": cod_donacion,
+                            "Tipo": datos.get("tipo_dispositivo", "Smartphone"),
+                            "Marca / Modelo": datos.get("marca_modelo", "No especificado"),
+                            "Estado Visual": datos.get("estado_visual", "Sin observaciones"),
+                            "Destino Triage": datos.get("destino_triage", "Reciclaje de Metales")
+                        })
+                    except Exception as err_item:
+                        lote_resultados.append({
+                            "Archivo": arch.name,
+                            "Código Donación": "Error",
+                            "Tipo": "No procesado",
+                            "Marca / Modelo": "Error IA",
+                            "Estado Visual": str(err_item)[:60],
+                            "Destino Triage": "Pendiente de Revisión"
+                        })
+
+                    progress_bar.progress((idx + 1) / total_archivos)
+
+                status_text.text("✅ ¡Procesamiento del lote completado con éxito!")
+                st.balloons()
+
+                # Resumen en tabla y métricas del lote
+                df_lote = pd.DataFrame(lote_resultados)
                 
-                prompt = """
-                Eres un experto en hardware, triage técnico y minería urbana para el Club REDE.
-                Analiza detenidamente las fotografías del residuo o dispositivo electrónico y responde ESTRICTAMENTE en formato JSON válido:
-                {
-                  "tipo_dispositivo": "string (ej. Smartphone, Celular, Tablet, Notebook, Router, etc.)",
-                  "marca_modelo": "string (ej. Samsung Galaxy A10, Xiaomi Redmi Note, No identificado)",
-                  "estado_visual": "string (descripción detallada: estado de pantalla, vidrio, carcasa, si se ve entero o desarmado)",
-                  "destino_triage": "string (DEBE SER exactamente una de las siguientes opciones: 'Reparación para Donación', 'Desarme de Repuestos', o 'Reciclaje de Metales')"
-                }
+                rep_count = len(df_lote[df_lote['Destino Triage'] == "Reparación para Donación"])
+                des_count = len(df_lote[df_lote['Destino Triage'] == "Desarme de Repuestos"])
+                rec_count = len(df_lote[df_lote['Destino Triage'] == "Reciclaje de Metales"])
 
-                REGLA TÉCNICA OBLIGATORIA PARA TELÉFONOS / SMARTPHONES:
-                1. 'Reparación para Donación' (posible donación): ÚNICAMENTE Y EXCLUSIVAMENTE para teléfonos que se vean completamente ENTEROS, con su estructura completa y con la PANTALLA TOTALMENTE ENTERA (sin trizaduras, sin vidrios quebrados, sin roturas visibles).
-                2. 'Desarme de Repuestos': Teléfonos con pantalla quebrada, trizada o dañada, pero cuya placa o piezas internas puedan ser rescatadas como repuestos.
-                3. 'Reciclaje de Metales': Teléfonos desarmados, sulfatados, partidos o cualquier otro desecho tecnológico que deba ir directo a recuperación de metales y minería urbana.
-                Para otros dispositivos que no sean teléfonos, evalúa según si están enteros y operativos (Donación), dañados reparables/piezas (Repuestos) o chatarra electrónica (Reciclaje de Metales).
-                """
-                try:
-                    resp = analizar_con_gemini_reintentos(prompt, imgs)
-                    resp = resp.replace("```json", "").replace("```", "").strip()
-                    datos = json.loads(resp)
-                    
-                    cod_donacion = f"REDE-{random.randint(10000, 99999)}"
-                    
-                    datos_db = {
-                        "codigo_empresa": codigo_empresa.strip(),
-                        "codigo_donacion": cod_donacion,
-                        "estado_entrega": "Pendiente",
-                        "tipo_dispositivo": datos.get("tipo_dispositivo"),
-                        "marca_modelo": datos.get("marca_modelo"),
-                        "estado_visual": datos.get("estado_visual"),
-                        "destino_triage": datos.get("destino_triage"),
-                        "observaciones_ingreso": observaciones,
-                        "origen_donacion": origen_donacion
-                    }
-                    if supabase:
-                        try:
-                            supabase.table("inventario_dispositivos").insert(datos_db).execute()
-                        except Exception as e_db:
-                            # Si la base de datos no tiene aún las columnas nuevas, insertar con esquema base
-                            if "codigo_donacion" in str(e_db):
-                                datos_db_compat = {
-                                    "codigo_empresa": codigo_empresa.strip(),
-                                    "tipo_dispositivo": datos.get("tipo_dispositivo"),
-                                    "marca_modelo": datos.get("marca_modelo"),
-                                    "estado_visual": datos.get("estado_visual"),
-                                    "destino_triage": datos.get("destino_triage")
-                                }
-                                supabase.table("inventario_dispositivos").insert(datos_db_compat).execute()
-                            else:
-                                raise e_db
-                    
-                    st.markdown(f"""
-                    <div style='background: rgba(255, 183, 3, 0.12); border: 2px dashed #FFB703; padding: 20px; border-radius: 12px; text-align: center; margin-top: 20px; margin-bottom: 20px;'>
-                        <h2 style='color: #FFB703; margin: 0;'>Código de Entrega: {cod_donacion}</h2>
-                        <p style='color: #E2E8F0; font-size: 1rem; margin-top: 8px;'>
-                            Lleva tu aparato al punto de acopio y escanea el código QR para validar tu entrega física.
-                        </p>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                    # --- TARJETA DE ANÁLISIS DETALLADO DE IA ---
-                    destino_triage_val = datos.get("destino_triage", "Reciclaje de Metales")
-                    color_destino = "#00D68F" if "Reparación" in destino_triage_val else ("#00B4D8" if "Desarme" in destino_triage_val else "#FFB703")
-
-                    st.markdown(f"""
-                    <div class='rede-card' style='border-color: rgba(0, 214, 143, 0.4);'>
-                        <div style='display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;'>
-                            <h3 style='color: #00D68F; margin: 0;'>🔍 Resultado del Análisis Técnico (IA)</h3>
-                            <span style='background: rgba(0, 214, 143, 0.15); border: 1px solid {color_destino}; color: {color_destino}; padding: 4px 12px; border-radius: 20px; font-weight: 700; font-size: 0.85rem;'>
-                                {destino_triage_val}
-                            </span>
+                st.markdown(f"""
+                <div class='rede-card' style='border-color: rgba(0, 214, 143, 0.5); margin-top: 20px;'>
+                    <h3 style='color: #00D68F; margin-top: 0;'>🎉 Resumen del Lote Procesado ({len(df_lote)} Equipos)</h3>
+                    <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px;'>
+                        <div style='background: rgba(0, 214, 143, 0.12); padding: 12px; border-radius: 8px; border: 1px solid #00D68F; text-align: center;'>
+                            <div style='font-size: 0.8rem; color: #94A3B8; text-transform: uppercase;'>Donación Social (Pantalla Sana)</div>
+                            <div style='font-size: 1.6rem; font-weight: 800; color: #00D68F;'>{rep_count}</div>
                         </div>
-                        <div style='display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px;'>
-                            <div style='background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);'>
-                                <span style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase;'>Dispositivo</span>
-                                <div style='color: #FFFFFF; font-weight: 700; font-size: 1.05rem;'>{datos.get("tipo_dispositivo", "No identificado")}</div>
-                            </div>
-                            <div style='background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);'>
-                                <span style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase;'>Marca / Modelo</span>
-                                <div style='color: #FFFFFF; font-weight: 700; font-size: 1.05rem;'>{datos.get("marca_modelo", "No especificado")}</div>
-                            </div>
-                            <div style='background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);'>
-                                <span style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase;'>Estado Visual</span>
-                                <div style='color: #FFFFFF; font-weight: 600; font-size: 0.95rem;'>{datos.get("estado_visual", "Sin observaciones")}</div>
-                            </div>
-                            <div style='background: rgba(15, 23, 42, 0.6); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06);'>
-                                <span style='color: #94A3B8; font-size: 0.8rem; text-transform: uppercase;'>Entidad Donante</span>
-                                <div style='color: #00D68F; font-weight: 700; font-size: 1.05rem;'>{codigo_empresa.strip()}</div>
-                            </div>
+                        <div style='background: rgba(0, 180, 216, 0.12); padding: 12px; border-radius: 8px; border: 1px solid #00B4D8; text-align: center;'>
+                            <div style='font-size: 0.8rem; color: #94A3B8; text-transform: uppercase;'>Desarme de Repuestos</div>
+                            <div style='font-size: 1.6rem; font-weight: 800; color: #00B4D8;'>{des_count}</div>
+                        </div>
+                        <div style='background: rgba(255, 183, 3, 0.12); padding: 12px; border-radius: 8px; border: 1px solid #FFB703; text-align: center;'>
+                            <div style='font-size: 0.8rem; color: #94A3B8; text-transform: uppercase;'>Minería / Reciclaje Metales</div>
+                            <div style='font-size: 1.6rem; font-weight: 800; color: #FFB703;'>{rec_count}</div>
                         </div>
                     </div>
-                    """, unsafe_allow_html=True)
-                    
-                    if correo_usuario.strip():
+                </div>
+                """, unsafe_allow_html=True)
+
+                st.dataframe(df_lote, use_container_width=True)
+
+                if correo_usuario_b.strip():
+                    try:
+                        resumen_texto = f"Lote de {len(df_lote)} teléfonos procesados. Donación: {rep_count}, Repuestos: {des_count}, Minería: {rec_count}."
+                        datos_correo_bulk = {
+                            "tipo_dispositivo": f"Lote de {len(df_lote)} Dispositivos",
+                            "marca_modelo": f"{rep_count} Donación / {des_count} Repuestos / {rec_count} Reciclaje",
+                            "estado_visual": "Procesamiento masivo por IA",
+                            "destino_triage": "Lote Multidestino"
+                        }
                         threading.Thread(
-                            target=enviar_correo_resumen, 
+                            target=enviar_correo_resumen,
                             args=(
-                                correo_usuario.strip(), 
-                                datos, 
-                                cod_donacion, 
-                                codigo_empresa.strip(), 
-                                imgs[0] if imgs else None, 
-                                origen_donacion
+                                correo_usuario_b.strip(),
+                                datos_correo_bulk,
+                                f"LOTE-{len(df_lote)}EQ",
+                                codigo_empresa_b.strip(),
+                                None,
+                                origen_donacion_b
                             )
                         ).start()
-                        st.success(f"📧 Se ha enviado la constancia oficial a: {correo_usuario.strip()}")
-                except Exception as e:
-                    st.error(f"Error en el proceso técnico: {e}")
+                        st.success(f"📧 Se envió la confirmación del lote a: {correo_usuario_b.strip()}")
+                    except Exception as err_mail:
+                        st.caption(f"No se pudo enviar el correo del lote: {err_mail}")
 
 # ------------------------------------------------------------------------------
 # TAB 2: PORTAL DONANTES E IMPACTO AMBIENTAL
